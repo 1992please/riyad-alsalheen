@@ -29,7 +29,7 @@ class DatabaseHelper(context: Context)
 
     private fun checkDatabase(): Boolean {
         return try {
-            SQLiteDatabase.openDatabase(databasePath, null, SQLiteDatabase.OPEN_READONLY)
+            SQLiteDatabase.openDatabase(databasePath, null, SQLiteDatabase.OPEN_READONLY).close()
             true
         } catch (e: Exception) {
             false
@@ -39,18 +39,10 @@ class DatabaseHelper(context: Context)
     @Throws(IOException::class)
     private fun copyDatabase(context: Context) {
         val input = context.assets.open("databases/$DATABASE_NAME")
-        val outputFile = context.getDatabasePath(DATABASE_NAME)
-        outputFile.parentFile?.mkdirs()
-
-        FileOutputStream(outputFile).use { output ->
-            val buffer = ByteArray(1024)
-            var length: Int
-            while (input.read(buffer).also { length = it } > 0) {
-                output.write(buffer, 0, length)
-            }
-            output.flush()
-        }
+        val output = FileOutputStream(databasePath)
+        input.copyTo(output)
         input.close()
+        output.close()
     }
 
     override fun getReadableDatabase(): SQLiteDatabase {
