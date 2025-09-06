@@ -3,6 +3,7 @@ package com.nader.riyadalsalheen.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
@@ -28,15 +29,18 @@ class DatabaseHelper(context: Context)
     }
 
     private fun checkDatabase(): Boolean {
-        return try {
+        try {
+            val dbFile = File(databasePath)
+            if (!dbFile.exists() || !dbFile.canRead()  || dbFile.length() == 0L) {
+                return false
+            }
             SQLiteDatabase.openDatabase(databasePath, null, SQLiteDatabase.OPEN_READONLY).close()
-            true
+            return true
         } catch (e: Exception) {
-            false
+            return false
         }
     }
 
-    @Throws(IOException::class)
     private fun copyDatabase(context: Context) {
         val input = context.assets.open("databases/$DATABASE_NAME")
         val output = FileOutputStream(databasePath)

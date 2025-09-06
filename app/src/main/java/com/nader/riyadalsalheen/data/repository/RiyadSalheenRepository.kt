@@ -25,13 +25,12 @@ class RiyadSalheenRepository(context: Context) {
 
     fun getAllBooks(): List<Book> {
         val books = mutableListOf<Book>()
-        val cursor = database.query(TABLE_BOOKS, null, null, null, null, null, null)
-
-        cursor.use {
-            while (it.moveToNext()) {
+        val query = "SELECT * FROM $TABLE_BOOKS ORDER BY $COLUMN_ID ASC"
+        database.rawQuery(query, null).use { cursor ->
+            while (cursor.moveToNext()) {
                 books.add(Book(
-                    id = it.getInt(it.getColumnIndexOrThrow(COLUMN_ID)),
-                    title = it.getString(it.getColumnIndexOrThrow(COLUMN_TITLE))
+                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE))
                 ))
             }
         }
@@ -40,17 +39,15 @@ class RiyadSalheenRepository(context: Context) {
 
     fun getDoorsByBook(bookId: Int): List<Door> {
         val doors = mutableListOf<Door>()
-        val selection = "$COLUMN_BOOK_ID = ?"
+        val query = "SELECT * FROM $TABLE_DOORS WHERE $COLUMN_BOOK_ID = ? ORDER BY $COLUMN_ID ASC"
         val selectionArgs = arrayOf(bookId.toString())
 
-        val cursor = database.query(TABLE_DOORS, null, selection, selectionArgs, null, null, null)
-
-        cursor.use {
-            while (it.moveToNext()) {
+        database.rawQuery(query, selectionArgs).use { cursor ->
+            while (cursor.moveToNext()) {
                 doors.add(Door(
-                    id = it.getInt(it.getColumnIndexOrThrow(COLUMN_ID)),
-                    bookId = it.getInt(it.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = it.getString(it.getColumnIndexOrThrow(COLUMN_TITLE))
+                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
+                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE))
                 ))
             }
         }
@@ -59,23 +56,18 @@ class RiyadSalheenRepository(context: Context) {
 
     fun getHadithsByDoor(doorId: Int): List<Hadith> {
         val hadiths = mutableListOf<Hadith>()
-        val selection = "$COLUMN_DOOR_ID = ?"
+        val query = "SELECT * FROM $TABLE_HADITHS WHERE $COLUMN_DOOR_ID = ? ORDER BY $COLUMN_ID ASC"
         val selectionArgs = arrayOf(doorId.toString())
 
-        // Order by ID for proper sequencing
-        val orderBy = "$COLUMN_ID ASC"
-
-        val cursor = database.query(TABLE_HADITHS, null, selection, selectionArgs, null, null, orderBy)
-
-        cursor.use {
-            while (it.moveToNext()) {
+        database.rawQuery(query, selectionArgs).use { cursor ->
+            while (cursor.moveToNext()) {
                 hadiths.add(Hadith(
-                    id = it.getInt(it.getColumnIndexOrThrow(COLUMN_ID)),
-                    doorId = it.getInt(it.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
-                    bookId = it.getInt(it.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = it.getString(it.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    hadith = it.getString(it.getColumnIndexOrThrow(COLUMN_HADITH)),
-                    sharh = it.getString(it.getColumnIndexOrThrow(COLUMN_SHARH))
+                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                    doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
+                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
+                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
+                    hadith = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                 ))
             }
         }
@@ -83,24 +75,31 @@ class RiyadSalheenRepository(context: Context) {
     }
 
     fun getHadithById(hadithId: Int): Hadith? {
-        val selection = "$COLUMN_ID = ?"
+        val query = "SELECT * FROM $TABLE_HADITHS WHERE $COLUMN_ID = ?"
         val selectionArgs = arrayOf(hadithId.toString())
 
-        val cursor = database.query(
-            TABLE_HADITHS, null,  selection, selectionArgs, null, null, null)
-
-        cursor.use {
-            if (it.moveToFirst()) {
+        database.rawQuery(query, selectionArgs).use { cursor ->
+            if (cursor.moveToFirst()) {
                 return Hadith(
-                    id = it.getInt(it.getColumnIndexOrThrow(COLUMN_ID)),
-                    doorId = it.getInt(it.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
-                    bookId = it.getInt(it.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = it.getString(it.getColumnIndexOrThrow(COLUMN_TITLE)) ?: "",
-                    hadith = it.getString(it.getColumnIndexOrThrow(COLUMN_HADITH)),
-                    sharh = it.getString(it.getColumnIndexOrThrow(COLUMN_SHARH)) ?: ""
+                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                    doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
+                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
+                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)) ?: "",
+                    hadith = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH)) ?: ""
                 )
             }
         }
         return null
+    }
+
+    fun getHadithsCount(): Int {
+        val query = "SELECT COUNT(*) FROM $TABLE_HADITHS"
+        database.rawQuery(query, null).use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(0) // Returns the count from the first column
+            }
+        }
+        return 0
     }
 }
