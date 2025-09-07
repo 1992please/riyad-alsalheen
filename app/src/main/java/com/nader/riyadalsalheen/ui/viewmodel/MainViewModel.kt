@@ -13,11 +13,17 @@ import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = RiyadSalheenRepository(application)
-
+    val packageInfo = application.packageManager.getPackageInfo(application.packageName, 0)
     val books = mutableStateOf(emptyList<Book>())
     val doors = mutableStateOf(emptyList<Door>())
     val hadiths = mutableStateOf(emptyList<Hadith>())
-
+    val hadith = mutableStateOf<Hadith?>(null)
+    val hadithCount = mutableStateOf(0)
+    init {
+        viewModelScope.launch {
+            hadithCount.value = repository.getHadithsCount()
+        }
+    }
 
     fun loadBooks() {
         viewModelScope.launch {
@@ -37,4 +43,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadHadith(hadithId: Int) {
+        hadith.value = hadiths.value.find { it.id == hadithId }
+        if(hadith.value == null) {
+            viewModelScope.launch {
+                val currentHadith = repository.getHadithById(hadithId);
+                if(currentHadith != null) {
+                    hadith.value = currentHadith
+                    doors.value = repository.getDoorsByBook(currentHadith.bookId)
+                    hadiths.value = repository.getHadithsByDoor(currentHadith.doorId)
+                }
+            }
+        }
+    }
 }

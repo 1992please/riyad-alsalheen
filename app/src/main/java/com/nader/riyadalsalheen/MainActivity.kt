@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -15,6 +16,7 @@ import com.nader.riyadalsalheen.ui.screens.BookListScreen
 import com.nader.riyadalsalheen.ui.screens.DoorListScreen
 import com.nader.riyadalsalheen.ui.screens.HadithDetailScreen
 import com.nader.riyadalsalheen.ui.screens.HadithListScreen
+import com.nader.riyadalsalheen.ui.screens.HomeScreen
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
@@ -28,8 +30,27 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = "books"
+                        startDestination = "home"
                     ) {
+                        composable("home") {
+                            HomeScreen(
+                                viewModel = viewModel,
+                                onBooksClicked = {
+                                    // Navigate to appendix screen
+                                    navController.navigate("books"){
+                                        popUpTo("home"){
+                                            saveState = true
+                                        }
+                                    }
+                                },
+                                onNavigateToHadith = { hadithId ->
+                                    // Save to preferences
+                                    navController.navigate("hadithDetail/$hadithId") {
+                                        popUpTo("home") { saveState = true }
+                                    }
+                                }
+                            )
+                        }
                         composable("books") {
                             BookListScreen(
                                 viewModel = viewModel,
@@ -40,6 +61,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("doors/{bookId}") { backStackEntry ->
                             val bookId = backStackEntry.arguments?.getString("bookId")?.toIntOrNull() ?: 0
+                            LaunchedEffect(bookId) {
+                                viewModel.loadDoors(bookId)
+                            }
                             DoorListScreen(
                                 viewModel = viewModel,
                                 onDoorSelected = { door ->
@@ -49,8 +73,11 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("hadiths/{doorId}") { backStackEntry ->
                             val doorId = backStackEntry.arguments?.getString("doorId")?.toIntOrNull() ?: 0
+                            LaunchedEffect(doorId) {
+                                viewModel.loadHadiths(doorId)
+                            }
                             HadithListScreen(
-                                hadiths = viewModel.hadiths.value,
+                                viewModel = viewModel,
                                 onHadithSelected = { hadith ->
                                     navController.navigate("hadithDetail/${hadith.id}")
                                 }
@@ -58,8 +85,36 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("hadithDetail/{hadithId}") { backStackEntry ->
                             val hadithId = backStackEntry.arguments?.getString("hadithId")?.toIntOrNull() ?: 0
-                            val hadith = viewModel.hadiths.value.find { it.id == hadithId }
-                            hadith?.let { HadithDetailScreen(hadith = it) }
+                            LaunchedEffect(hadithId) {
+                                viewModel.loadHadith(hadithId)
+                            }
+                            HadithDetailScreen(
+                                viewModel = viewModel,
+                                onNextHadith = {
+                                    if (hadithId < viewModel.hadithCount.value) {
+                                        navController.navigate("hadithDetail/${hadithId + 1}"){
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                },
+                                onPreviousHadith = {
+                                    if (hadithId > 1) {
+                                        navController.navigate("hadithDetail/${hadithId - 1}"){
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                },
+                                onBack = {
+                                    // Go back to previous screen based on navigation history
+                                    if (navController.previousBackStackEntry != null) {
+                                        navController.popBackStack()
+                                    } else {
+                                        navController.navigate("home") {
+                                            popUpTo(0)
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
                 }

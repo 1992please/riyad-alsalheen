@@ -41,7 +41,6 @@ fun BookListScreen(viewModel: MainViewModel, onBookSelected: (Book) -> Unit) {
                         )
                     },
                     modifier = Modifier.clickable {
-                        viewModel.loadDoors(book.id)
                         onBookSelected(book)
                     }
                 )

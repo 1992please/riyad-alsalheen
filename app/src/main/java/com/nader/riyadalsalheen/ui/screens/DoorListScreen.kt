@@ -34,7 +34,6 @@ fun DoorListScreen(viewModel: MainViewModel, onDoorSelected: (Door) -> Unit) {
                         )
                     },
                     modifier = Modifier.clickable {
-                        viewModel.loadHadiths(door.id)
                         onDoorSelected(door)
                     }
                 )
