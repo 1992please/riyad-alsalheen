@@ -48,6 +48,12 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("hadithDetail/$hadithId") {
                                         popUpTo("home") { saveState = true }
                                     }
+                                },
+                                onBookmarksClicked = {
+
+                                },
+                                onSearchClicked = {
+
                                 }
                             )
                         }
