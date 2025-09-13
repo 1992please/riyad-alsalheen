@@ -26,7 +26,9 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 @Composable
 fun  HomeScreen(viewModel: MainViewModel,
                 onBooksClicked: () -> Unit,
-                onNavigateToHadith: (hadithId: Int) -> Unit
+                onNavigateToHadith: (hadithId: Int) -> Unit,
+                onBookmarksClicked: () -> Unit,
+                onSearchClicked: () -> Unit
 ) {
     // Get app version
     Column(
