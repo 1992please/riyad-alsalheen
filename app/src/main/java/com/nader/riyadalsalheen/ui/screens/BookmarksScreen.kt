@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,7 +53,7 @@ fun BookmarksScreen(
     onBackPressed: () -> Unit
 )
 {
-    BookmarksContent(
+    BookmarksScreenContent(
         bookmarkedHadiths = viewModel.bookmarks.value,
         onHadithSelected = onHadithSelected,
         onRemoveBookmark = { hadithId ->
@@ -63,7 +65,7 @@ fun BookmarksScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookmarksContent(
+fun BookmarksScreenContent(
     bookmarkedHadiths: List<Hadith>,
     onHadithSelected: (Int) -> Unit = {},
     onRemoveBookmark: (Int) -> Unit = {},
@@ -88,7 +90,7 @@ fun BookmarksContent(
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_back_24),
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "رجوع"
                         )
                     }
@@ -307,7 +309,7 @@ fun BookmarkItem(
 @Composable
 fun BookmarksContentEmptyPreview() {
     RiyadalsalheenTheme {
-        BookmarksContent(
+        BookmarksScreenContent(
             bookmarkedHadiths = emptyList()
         )
     }
@@ -327,7 +329,7 @@ fun BookmarksContentEmptyPreview() {
 @Composable
 fun BookmarksContentPreview() {
     RiyadalsalheenTheme {
-        BookmarksContent(
+        BookmarksScreenContent(
             bookmarkedHadiths = listOf(
                 Hadith(
                     id = 1,
