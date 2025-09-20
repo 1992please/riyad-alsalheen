@@ -16,11 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,11 +46,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nader.riyadalsalheen.R
 import com.nader.riyadalsalheen.model.Hadith
 import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
-import com.nader.riyadalsalheen.R
 
 @Composable
 fun SearchScreen(
@@ -80,7 +75,7 @@ fun SearchScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreenContent(
-    searchResults: List<Hadith> = emptyList<Hadith>(),
+    searchResults: List<Hadith> = emptyList(),
     searchQuery: String = "",
     isSearching: Boolean = false,
     onSearch: (String) -> Unit = {},
@@ -97,11 +92,57 @@ fun SearchScreenContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("البحث في الأحاديث") },
+                title = {
+                    // Search Bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { query ->
+                            onSearch(if (query.length >= 3) query else "")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        placeholder = {
+                            Text(
+                                text = "ابحث عن كلمة أو جملة...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
+                                contentDescription = "بحث",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        onSearch("")
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = ImageVector.vectorResource(R.drawable.ic_clear_24),
+                                        contentDescription = "مسح"
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(28.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back_24),
                             contentDescription = "رجوع"
                         )
                     }
@@ -114,56 +155,6 @@ fun SearchScreenContent(
                 .fillMaxSize()
                 .padding(paddingValues)
         ){
-            // Search Bar
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { query ->
-                        onSearch(if (query.length >= 3) query else "")
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester),
-                    placeholder = {
-                        Text("ابحث عن كلمة أو جملة...")
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(
-                                onClick = {
-                                    onSearch("")
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Clear,
-                                    contentDescription = "مسح"
-                                )
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
-            }
-
             // Search Info
             if (searchQuery.isNotEmpty() && searchQuery.length < 3) {
                 Card(
@@ -179,7 +170,7 @@ fun SearchScreenContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Info,
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_info_24),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.size(20.dp)
@@ -221,7 +212,7 @@ fun SearchScreenContent(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Search,
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -357,7 +348,7 @@ fun SearchResultItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Highlight search query in text
-            val cleanHadithText = hadith.hadith.replace(Regex("<[^>]*>"), "")
+            val cleanHadithText = hadith.text.replace(Regex("<[^>]*>"), "")
             val displayText = if (cleanHadithText.length > 200) {
                 cleanHadithText.substring(0, 200) + "..."
             } else {
@@ -416,7 +407,7 @@ fun SearchScreenPreview() {
                     doorId = 1,
                     bookId = 1,
                     title = "إنما الأعمال بالنيات",
-                    hadith = "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى",
+                    text = "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى",
                     sharh = "هذا الحديث يبين أن صحة العمل وفساده، وكونه مقبولاً أو مردوداً، إنما يتوقف على النية. فمن نوى خيراً أثيب، ومن نوى شراً عوقب، ومن لم ينو شيئاً فلا له ولا عليه."
                 ),
                 Hadith(
@@ -424,7 +415,7 @@ fun SearchScreenPreview() {
                     doorId = 2,
                     bookId = 1,
                     title = "الإسلام والإيمان والإحسان",
-                    hadith = "الإسلام أن تشهد أن لا إله إلا الله وأن محمداً رسول الله، وتقيم الصلاة، وتؤتي الزكاة، وتصوم رمضان، وتحج البيت إن استطعت إليه سبيلاً",
+                    text = "الإسلام أن تشهد أن لا إله إلا الله وأن محمداً رسول الله، وتقيم الصلاة، وتؤتي الزكاة، وتصوم رمضان، وتحج البيت إن استطعت إليه سبيلاً",
                     sharh = "هذا الحديث يعرّف الإسلام بأركانه الخمسة الأساسية، وهي الشهادتان والصلاة والزكاة والصوم والحج. وهذه الأركان هي الأسس التي يقوم عليها دين الإسلام."
                 ),
                 Hadith(
@@ -432,7 +423,7 @@ fun SearchScreenPreview() {
                     doorId = 3,
                     bookId = 2,
                     title = "طلب العلم",
-                    hadith = "اطلبوا العلم من المهد إلى اللحد",
+                    text = "اطلبوا العلم من المهد إلى اللحد",
                     sharh = "يحث هذا الحديث على أهمية طلب العلم في جميع مراحل الحياة، من الطفولة إلى الشيخوخة. فالعلم نور يهدي الإنسان في دنياه وآخرته، ولا يجوز التوقف عن طلبه في أي مرحلة من العمر."
                 ),
                 Hadith(
@@ -440,7 +431,7 @@ fun SearchScreenPreview() {
                     doorId = 4,
                     bookId = 2,
                     title = "بر الوالدين",
-                    hadith = "الوالدان أوسط أبواب الجنة، فإن شئت فأضع ذلك الباب أو احفظه",
+                    text = "الوالدان أوسط أبواب الجنة، فإن شئت فأضع ذلك الباب أو احفظه",
                     sharh = "يبين هذا الحديث عظم مكانة الوالدين في الإسلام، وأن برهما طريق إلى الجنة. فمن أراد دخول الجنة فليبر والديه، ومن عقهما فقد أضاع فرصة عظيمة للفوز برضا الله."
                 ),
                 Hadith(
@@ -448,7 +439,7 @@ fun SearchScreenPreview() {
                     doorId = 5,
                     bookId = 3,
                     title = "الصدقة",
-                    hadith = "الصدقة تطفئ الخطيئة كما يطفئ الماء النار",
+                    text = "الصدقة تطفئ الخطيئة كما يطفئ الماء النار",
                     sharh = "يشبه هذا الحديث الصدقة بالماء الذي يطفئ النار، فكما أن الماء يقضي على النار، فإن الصدقة تمحو الذنوب والخطايا. وهذا يدل على عظم أجر الصدقة وأثرها في تطهير النفس."
                 ),
                 Hadith(
@@ -456,7 +447,7 @@ fun SearchScreenPreview() {
                     doorId = 6,
                     bookId = 3,
                     title = "الجار",
-                    hadith = "ما زال جبريل يوصيني بالجار حتى ظننت أنه سيورثه",
+                    text = "ما زال جبريل يوصيني بالجار حتى ظننت أنه سيورثه",
                     sharh = "يؤكد هذا الحديث على أهمية حسن الجوار وحقوق الجار في الإسلام. فقد كان الوصاة بالجار من الأمور المؤكدة حتى أن الرسول ظن أن الجار سيجعل له حق في الميراث."
                 ),
                 Hadith(
@@ -464,7 +455,7 @@ fun SearchScreenPreview() {
                     doorId = 7,
                     bookId = 4,
                     title = "الصبر",
-                    hadith = "الصبر نصف الإيمان، والوضوء نصف الإيمان، والحمد لله تملأ الميزان",
+                    text = "الصبر نصف الإيمان، والوضوء نصف الإيمان، والحمد لله تملأ الميزان",
                     sharh = "يبين هذا الحديث أن الصبر يمثل جزءاً كبيراً من الإيمان، فالمؤمن الصابر على البلاء والمحن يكون إيمانه أقوى. كما يؤكد على أهمية الطهارة والحمد في حياة المسلم."
                 ),
                 Hadith(
@@ -472,7 +463,7 @@ fun SearchScreenPreview() {
                     doorId = 8,
                     bookId = 4,
                     title = "العفو والصفح",
-                    hadith = "ما نقصت صدقة من مال، وما زاد الله عبداً بعفو إلا عزاً",
+                    text = "ما نقصت صدقة من مال، وما زاد الله عبداً بعفو إلا عزاً",
                     sharh = "يوضح هذا الحديث أن العفو عن الناس لا يقلل من قدر الإنسان، بل يزيده عزة ومكانة عند الله وعند الناس. فالعفو خلق كريم يرفع صاحبه درجات."
                 ),
                 Hadith(
@@ -480,7 +471,7 @@ fun SearchScreenPreview() {
                     doorId = 9,
                     bookId = 5,
                     title = "الكلمة الطيبة",
-                    hadith = "الكلمة الطيبة صدقة",
+                    text = "الكلمة الطيبة صدقة",
                     sharh = "يعلمنا هذا الحديث أن مجرد النطق بالكلمة الحسنة الطيبة يعتبر صدقة يؤجر عليها المسلم. وهذا يشجع على حسن الكلام ولطف المعاملة مع الآخرين."
                 ),
                 Hadith(
@@ -488,7 +479,7 @@ fun SearchScreenPreview() {
                     doorId = 10,
                     bookId = 5,
                     title = "التواضع",
-                    hadith = "وما تواضع أحد لله إلا رفعه الله",
+                    text = "وما تواضع أحد لله إلا رفعه الله",
                     sharh = "يبين هذا الحديث أن التواضع لله تعالى سبب في رفعة الدرجات. فمن تواضع وترك الكبر والغرور، رفعه الله في الدنيا والآخرة، لأن التواضع من صفات المؤمنين الصالحين."
                 )
             ),

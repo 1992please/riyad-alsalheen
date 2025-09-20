@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -90,7 +88,7 @@ fun BookmarksScreenContent(
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_back_24),
                             contentDescription = "رجوع"
                         )
                     }
@@ -241,7 +239,7 @@ fun BookmarkItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val cleanHadithText = hadith.hadith.replace(Regex("<[^>]*>"), "")
+                val cleanHadithText = hadith.text.replace(Regex("<[^>]*>"), "")
                 val displayText = if (cleanHadithText.length > 150) {
                     cleanHadithText.substring(0, 150) + "..."
                 } else {
@@ -336,7 +334,7 @@ fun BookmarksContentPreview() {
                     doorId = 1,
                     bookId = 1,
                     title = "إنما الأعمال بالنيات",
-                    hadith = "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى",
+                    text = "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى",
                     sharh = "هذا الحديث يبين أن صحة العمل وفساده، وكونه مقبولاً أو مردوداً، إنما يتوقف على النية. فمن نوى خيراً أثيب، ومن نوى شراً عوقب، ومن لم ينو شيئاً فلا له ولا عليه."
                 ),
                 Hadith(
@@ -344,7 +342,7 @@ fun BookmarksContentPreview() {
                     doorId = 2,
                     bookId = 1,
                     title = "الإسلام والإيمان والإحسان",
-                    hadith = "الإسلام أن تشهد أن لا إله إلا الله وأن محمداً رسول الله، وتقيم الصلاة، وتؤتي الزكاة، وتصوم رمضان، وتحج البيت إن استطعت إليه سبيلاً",
+                    text = "الإسلام أن تشهد أن لا إله إلا الله وأن محمداً رسول الله، وتقيم الصلاة، وتؤتي الزكاة، وتصوم رمضان، وتحج البيت إن استطعت إليه سبيلاً",
                     sharh = "هذا الحديث يعرّف الإسلام بأركانه الخمسة الأساسية، وهي الشهادتان والصلاة والزكاة والصوم والحج. وهذه الأركان هي الأسس التي يقوم عليها دين الإسلام."
                 ),
                 Hadith(
@@ -352,7 +350,7 @@ fun BookmarksContentPreview() {
                     doorId = 3,
                     bookId = 2,
                     title = "طلب العلم",
-                    hadith = "اطلبوا العلم من المهد إلى اللحد",
+                    text = "اطلبوا العلم من المهد إلى اللحد",
                     sharh = "يحث هذا الحديث على أهمية طلب العلم في جميع مراحل الحياة، من الطفولة إلى الشيخوخة. فالعلم نور يهدي الإنسان في دنياه وآخرته، ولا يجوز التوقف عن طلبه في أي مرحلة من العمر."
                 ),
                 Hadith(
@@ -360,7 +358,7 @@ fun BookmarksContentPreview() {
                     doorId = 4,
                     bookId = 2,
                     title = "بر الوالدين",
-                    hadith = "الوالدان أوسط أبواب الجنة، فإن شئت فأضع ذلك الباب أو احفظه",
+                    text = "الوالدان أوسط أبواب الجنة، فإن شئت فأضع ذلك الباب أو احفظه",
                     sharh = "يبين هذا الحديث عظم مكانة الوالدين في الإسلام، وأن برهما طريق إلى الجنة. فمن أراد دخول الجنة فليبر والديه، ومن عقهما فقد أضاع فرصة عظيمة للفوز برضا الله."
                 ),
                 Hadith(
@@ -368,7 +366,7 @@ fun BookmarksContentPreview() {
                     doorId = 5,
                     bookId = 3,
                     title = "الصدقة",
-                    hadith = "الصدقة تطفئ الخطيئة كما يطفئ الماء النار",
+                    text = "الصدقة تطفئ الخطيئة كما يطفئ الماء النار",
                     sharh = "يشبه هذا الحديث الصدقة بالماء الذي يطفئ النار، فكما أن الماء يقضي على النار، فإن الصدقة تمحو الذنوب والخطايا. وهذا يدل على عظم أجر الصدقة وأثرها في تطهير النفس."
                 ),
                 Hadith(
@@ -376,7 +374,7 @@ fun BookmarksContentPreview() {
                     doorId = 6,
                     bookId = 3,
                     title = "الجار",
-                    hadith = "ما زال جبريل يوصيني بالجار حتى ظننت أنه سيورثه",
+                    text = "ما زال جبريل يوصيني بالجار حتى ظننت أنه سيورثه",
                     sharh = "يؤكد هذا الحديث على أهمية حسن الجوار وحقوق الجار في الإسلام. فقد كان الوصاة بالجار من الأمور المؤكدة حتى أن الرسول ظن أن الجار سيجعل له حق في الميراث."
                 ),
                 Hadith(
@@ -384,7 +382,7 @@ fun BookmarksContentPreview() {
                     doorId = 7,
                     bookId = 4,
                     title = "الصبر",
-                    hadith = "الصبر نصف الإيمان، والوضوء نصف الإيمان، والحمد لله تملأ الميزان",
+                    text = "الصبر نصف الإيمان، والوضوء نصف الإيمان، والحمد لله تملأ الميزان",
                     sharh = "يبين هذا الحديث أن الصبر يمثل جزءاً كبيراً من الإيمان، فالمؤمن الصابر على البلاء والمحن يكون إيمانه أقوى. كما يؤكد على أهمية الطهارة والحمد في حياة المسلم."
                 ),
                 Hadith(
@@ -392,7 +390,7 @@ fun BookmarksContentPreview() {
                     doorId = 8,
                     bookId = 4,
                     title = "العفو والصفح",
-                    hadith = "ما نقصت صدقة من مال، وما زاد الله عبداً بعفو إلا عزاً",
+                    text = "ما نقصت صدقة من مال، وما زاد الله عبداً بعفو إلا عزاً",
                     sharh = "يوضح هذا الحديث أن العفو عن الناس لا يقلل من قدر الإنسان، بل يزيده عزة ومكانة عند الله وعند الناس. فالعفو خلق كريم يرفع صاحبه درجات."
                 ),
                 Hadith(
@@ -400,7 +398,7 @@ fun BookmarksContentPreview() {
                     doorId = 9,
                     bookId = 5,
                     title = "الكلمة الطيبة",
-                    hadith = "الكلمة الطيبة صدقة",
+                    text = "الكلمة الطيبة صدقة",
                     sharh = "يعلمنا هذا الحديث أن مجرد النطق بالكلمة الحسنة الطيبة يعتبر صدقة يؤجر عليها المسلم. وهذا يشجع على حسن الكلام ولطف المعاملة مع الآخرين."
                 ),
                 Hadith(
@@ -408,7 +406,7 @@ fun BookmarksContentPreview() {
                     doorId = 10,
                     bookId = 5,
                     title = "التواضع",
-                    hadith = "وما تواضع أحد لله إلا رفعه الله",
+                    text = "وما تواضع أحد لله إلا رفعه الله",
                     sharh = "يبين هذا الحديث أن التواضع لله تعالى سبب في رفعة الدرجات. فمن تواضع وترك الكبر والغرور، رفعه الله في الدنيا والآخرة، لأن التواضع من صفات المؤمنين الصالحين."
                 )
             )

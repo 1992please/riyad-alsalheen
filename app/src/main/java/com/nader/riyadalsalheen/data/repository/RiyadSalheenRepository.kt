@@ -97,7 +97,7 @@ class RiyadSalheenRepository(context: Context) {
                     doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                     bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                     title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    hadith = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                     sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                 ))
             }
@@ -116,7 +116,7 @@ class RiyadSalheenRepository(context: Context) {
                     doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                     bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                     title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    hadith = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                     sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                 )
             }
@@ -141,7 +141,7 @@ class RiyadSalheenRepository(context: Context) {
                         doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                         bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                         title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                        hadith = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                        text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                         sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                     )
                 )
@@ -170,7 +170,7 @@ class RiyadSalheenRepository(context: Context) {
                     doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                     bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                     title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    hadith = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                     sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                 ))
             }
@@ -188,7 +188,7 @@ class RiyadSalheenRepository(context: Context) {
                     doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                     bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                     title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)) ?: "",
-                    hadith = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                     sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH)) ?: ""
                 )
             }

@@ -5,6 +5,6 @@ data class Hadith(
     val doorId: Int,
     val bookId: Int,
     val title: String,
-    val hadith: String,
+    val text: String,
     val sharh: String
 )

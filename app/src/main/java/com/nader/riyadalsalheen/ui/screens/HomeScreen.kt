@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -60,11 +58,11 @@ fun  HomeScreen(viewModel: MainViewModel,
 ) {
     // Collect state from ViewModel
     val coroutineScope = rememberCoroutineScope()
-
+    val currentHadith = viewModel.currentHadith.value
     // Create UI state
     val uiState = HomeScreenUiState(
         isDarkTheme = viewModel.isDarkTheme.value,
-        lastHadithId = viewModel.lastHadithId.intValue,
+        lastHadithId = currentHadith?.hadith?.id ?: 0,
         bookmarksCount = viewModel.bookmarks.value.size,
         booksCount = viewModel.books.value.size,
         versionName = viewModel.packageInfo.versionName ?: "1.0.0"
@@ -80,10 +78,10 @@ fun  HomeScreen(viewModel: MainViewModel,
         onToggleDarkTheme = { viewModel.toggleDarkTheme() },
         onRandomHadithClicked = {
             coroutineScope.launch {
-                val randomHadith = viewModel.getRandomHadith()
-                randomHadith?.let {
-                    onNavigateToHadith(it.id)
-                }
+//                val randomHadith = viewModel.getRandomHadith()
+//                randomHadith?.let {
+//                    onNavigateToHadith(it.id)
+//                }
             }
         }
     )
@@ -211,7 +209,7 @@ fun HomeScreenContent(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 QuickActionCard(
-                    icon = Icons.Outlined.Search,
+                    icon = ImageVector.vectorResource(id = R.drawable.ic_search_24),
                     title = "البحث",
                     subtitle = "بحث سريع",
                     onClick = onSearchClicked,

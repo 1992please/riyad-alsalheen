@@ -16,11 +16,6 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 @Composable
 fun BookListScreen(viewModel: MainViewModel, onBookSelected: (Book) -> Unit) {
-    LaunchedEffect(Unit) {
-        if (viewModel.books.value.isEmpty()) {
-            viewModel.loadBooks()
-        }
-    }
 
     if (viewModel.books.value.isEmpty()) {
         Text(

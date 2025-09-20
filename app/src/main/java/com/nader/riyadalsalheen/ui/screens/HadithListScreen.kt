@@ -16,7 +16,7 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 @Composable
 fun HadithListScreen(viewModel: MainViewModel, onHadithSelected: (Hadith) -> Unit) {
-    if (viewModel.hadiths.value.isEmpty()) {
+    if (viewModel.currentDoorHadiths.value.isEmpty()) {
         Text(
             text = "جاري التحميل...",
             modifier = Modifier.fillMaxSize(),
@@ -30,7 +30,7 @@ fun HadithListScreen(viewModel: MainViewModel, onHadithSelected: (Hadith) -> Uni
                 .fillMaxSize()
                 .padding(8.dp)
         ) {
-            items(viewModel.hadiths.value) { hadith ->
+            items(viewModel.currentDoorHadiths.value) { hadith ->
                 HadithListItem(
                     hadith = hadith,
                     onClick = { onHadithSelected(hadith) },

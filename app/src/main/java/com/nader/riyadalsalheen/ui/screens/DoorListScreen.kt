@@ -15,7 +15,7 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 @Composable
 fun DoorListScreen(viewModel: MainViewModel, onDoorSelected: (Door) -> Unit) {
-    if (viewModel.doors.value.isEmpty()) {
+    if (viewModel.currentBookDoors.value.isEmpty()) {
         Text(
             text = "جاري التحميل...",
             modifier = Modifier.fillMaxSize(),
@@ -24,7 +24,7 @@ fun DoorListScreen(viewModel: MainViewModel, onDoorSelected: (Door) -> Unit) {
         )
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(viewModel.doors.value) { door ->
+            items(viewModel.currentBookDoors.value) { door ->
                 ListItem(
                     headlineContent = {
                         Text(
