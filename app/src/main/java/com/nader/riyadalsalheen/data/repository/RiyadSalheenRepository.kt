@@ -97,7 +97,7 @@ class RiyadSalheenRepository(context: Context) {
                     doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                     bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                     title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                     sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                 ))
             }
@@ -116,7 +116,7 @@ class RiyadSalheenRepository(context: Context) {
                     doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                     bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                     title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                     sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                 )
             }
@@ -141,7 +141,7 @@ class RiyadSalheenRepository(context: Context) {
                         doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                         bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                         title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                        text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                        matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                         sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                     )
                 )
@@ -170,30 +170,12 @@ class RiyadSalheenRepository(context: Context) {
                     doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
                     bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
                     title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+                    matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
                     sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
                 ))
             }
         }
         return hadiths
-    }
-
-    fun getRandomHadith(): Hadith? {
-        val query = "SELECT * FROM $TABLE_HADITHS ORDER BY RANDOM() LIMIT 1"
-
-        database.rawQuery(query, null).use { cursor ->
-            if (cursor.moveToFirst()) {
-                return Hadith(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                    doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
-                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)) ?: "",
-                    text = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
-                    sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH)) ?: ""
-                )
-            }
-        }
-        return null
     }
 
     fun close() {

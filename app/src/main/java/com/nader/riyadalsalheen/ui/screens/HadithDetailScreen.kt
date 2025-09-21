@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -160,7 +159,7 @@ fun HadithDetailContent(
                         }
                     ) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_24 else R.drawable.ic_bookmark_border_24),
+                            imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_filled_24 else R.drawable.ic_bookmark_24),
                             contentDescription = "المفضلة",
                             tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -183,54 +182,6 @@ fun HadithDetailContent(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ){
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    IconButton(
-                        onClick = { onLoadHadith(prevHadithId) },
-                        enabled = uiState.currentHadith.hadith.id  > 1
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_navigate_before_24),
-                            contentDescription = "السابق",
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    ) {
-                        Text(
-                            text = "${uiState.currentHadith.hadith.id } / ${uiState.hadithCount}",
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { onLoadHadith(nextHadithId) },
-                        enabled = uiState.currentHadith.hadith.id < uiState.hadithCount
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_navigate_next_24),
-                            contentDescription = "التالي",
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-            }
         }
     ){ paddingValues ->
         Column(
@@ -241,8 +192,8 @@ fun HadithDetailContent(
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures { _, dragAmount ->
                         when {
-                            dragAmount > 50 -> onLoadHadith(prevHadithId)
-                            dragAmount < -50 -> onLoadHadith(nextHadithId)
+                            dragAmount > 50 -> onLoadHadith(nextHadithId)
+                            dragAmount < -50 -> onLoadHadith(prevHadithId)
                         }
                     }
                 }
@@ -327,7 +278,7 @@ fun HadithDetailContent(
                     }
 
                     HtmlText(
-                        html = uiState.currentHadith.hadith.text,
+                        html = uiState.currentHadith.hadith.matn,
                         fontSize = uiState.fontSize.sp,
                         lineHeight = (uiState.fontSize * 1.8f).sp
                     )
@@ -416,7 +367,7 @@ fun HadithDetailContent(
                             val shareText = buildString {
                                 appendLine(uiState.currentHadith.hadith.title)
                                 appendLine()
-                                appendLine(uiState.currentHadith.hadith.text.replace(Regex("<[^>]*>"), ""))
+                                appendLine(uiState.currentHadith.hadith.matn.replace(Regex("<[^>]*>"), ""))
                                 appendLine()
                                 appendLine("رياض الصالحين - الحديث ${uiState.currentHadith.hadith.id}")
                             }
@@ -435,7 +386,7 @@ fun HadithDetailContent(
 
                     TextButton(
                         onClick = {
-                            val shareText = uiState.currentHadith.hadith.text.replace(Regex("<[^>]*>"), "")
+                            val shareText = uiState.currentHadith.hadith.matn.replace(Regex("<[^>]*>"), "")
                             showShareDialog = false
                             coroutineScope.launch {
                                 val clipData = ClipData.newPlainText("hadith", shareText)
@@ -480,7 +431,7 @@ fun HadithDetailPreview() {
                         doorId = 4,
                         bookId = 8,
                         title = "إنما الأعمال بالنيات",
-                        text = "<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent; color:rgb(0, 0, 0)\">وعَنْ أَميرِ الْمُؤْمِنِينَ أبي حفْصٍ عُمرَ بنِ الْخَطَّابِ بْن نُفَيْل بْنِ عَبْد الْعُزَّى بن رياح بْن عبدِ اللَّهِ بْن قُرْطِ بْنِ رزاح بْنِ عَدِيِّ بْن كَعْبِ بْن لُؤَيِّ بن غالبٍ القُرَشِيِّ العدويِّ . رضي الله عنه ، قال : سمعْتُ رسُولَ الله صَلّى اللهُ عَلَيْهِ وسَلَّم يقُولُ &nbsp;</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">&laquo; </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">إنَّما</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> الأَعمالُ </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">بالنِّيَّات</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> ، وإِنَّمَا لِكُلِّ امرئٍ مَا نَوَى ، فمنْ كانَتْ </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">هجْرَتُهُ</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> إِلَى الله ورَسُولِهِ فهجرتُه إلى الله ورسُولِهِ ، ومنْ كاَنْت هجْرَتُه لدُنْيَا يُصيبُها ، أَو امرَأَةٍ يَنْكحُها فهْجْرَتُهُ إلى ما هَاجَر إليْهِ &raquo;</span></span></span></p>\n" +
+                        matn = "<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent; color:rgb(0, 0, 0)\">وعَنْ أَميرِ الْمُؤْمِنِينَ أبي حفْصٍ عُمرَ بنِ الْخَطَّابِ بْن نُفَيْل بْنِ عَبْد الْعُزَّى بن رياح بْن عبدِ اللَّهِ بْن قُرْطِ بْنِ رزاح بْنِ عَدِيِّ بْن كَعْبِ بْن لُؤَيِّ بن غالبٍ القُرَشِيِّ العدويِّ . رضي الله عنه ، قال : سمعْتُ رسُولَ الله صَلّى اللهُ عَلَيْهِ وسَلَّم يقُولُ &nbsp;</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">&laquo; </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">إنَّما</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> الأَعمالُ </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">بالنِّيَّات</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> ، وإِنَّمَا لِكُلِّ امرئٍ مَا نَوَى ، فمنْ كانَتْ </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">هجْرَتُهُ</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> إِلَى الله ورَسُولِهِ فهجرتُه إلى الله ورسُولِهِ ، ومنْ كاَنْت هجْرَتُه لدُنْيَا يُصيبُها ، أَو امرَأَةٍ يَنْكحُها فهْجْرَتُهُ إلى ما هَاجَر إليْهِ &raquo;</span></span></span></p>\n" +
                                 "\n" +
                                 "\n" +
                                 "\n" +
