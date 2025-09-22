@@ -35,6 +35,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val currentBookDoors = mutableStateOf(emptyList<Door>())
     val currentDoorHadiths = mutableStateOf(emptyList<Hadith>())
     val currentHadith = mutableStateOf<HadithDetails?>(null)
+    val cachedHadiths: MutableMap<Int, HadithDetails> = mutableMapOf()
 
     // Loading states
     val isLoading = mutableStateOf(false)
@@ -66,17 +67,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Navigation functions
     fun navigateToBook(bookId: Int) {
         viewModelScope.launch {
-            isLoading.value = true
             currentBookDoors.value = repository.getDoorsByBook(bookId)
-            isLoading.value = false
         }
     }
 
     fun navigateToDoor(doorId: Int) {
         viewModelScope.launch {
-            isLoading.value = true
             currentDoorHadiths.value = repository.getHadithsByDoor(doorId)
-            isLoading.value = false
+        }
+    }
+
+    private fun loadHadithDetails(hadithId: Int): HadithDetails? {
+        if(hadithId < 1 || hadithId > hadithCount.intValue) {
+            return null
+        }
+
+        val hadith = repository.getHadithById(hadithId)
+        if (hadith != null) {
+            val door = repository.getDoorById(doorId = hadith.doorId)
+            val book = books.value.find { it.id == hadith.bookId }
+            if(door != null && book != null) {
+                return HadithDetails(
+                    hadith = hadith,
+                    door = door,
+                    book = book
+                )
+            }
+        }
+        return null
+    }
+
+    private fun updateCachedHadiths() {
+        val hadithDetail = currentHadith.value ?: return
+
+        val currentId = hadithDetail.hadith.id
+        val minId = (currentId - 3).coerceIn(1, hadithCount.intValue)
+        val maxId = (currentId + 3).coerceIn(1, hadithCount.intValue)
+
+        // Remove unneeded items first for efficiency
+        cachedHadiths.entries.removeIf { kotlin.math.abs(it.key - currentId) > 3 }
+
+        // Use a more idiomatic way to add missing items
+        (minId..maxId).forEach { idx ->
+            if (!cachedHadiths.containsKey(idx)) {
+                loadHadithDetails(idx)?.let { cachedHadiths[idx] = it }
+            }
         }
     }
 
@@ -89,25 +124,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        viewModelScope.launch {
-            isLoading.value = true
-            val hadith = repository.getHadithById(hadithId)
-            if (hadith != null) {
-                currentBookDoors.value = repository.getDoorsByBook(hadith.bookId)
-                currentDoorHadiths.value = repository.getHadithsByDoor(hadith.doorId)
-
-                val door = currentBookDoors.value.find { it.id == hadith.doorId }
-                val book = books.value.find { it.id == hadith.bookId }
-                if(door != null && book != null) {
-                    currentHadith.value = HadithDetails(
-                        hadith = hadith,
-                        door = door,
-                        book = book
-                    )
-                }
-                preferences.saveReadingProgress(hadith.id)
+        val onHadithDetailsLoaded: (HadithDetails) -> Unit = { hadithDetails ->
+            viewModelScope.launch {
+                currentBookDoors.value = repository.getDoorsByBook(hadithDetails.book.id)
+                currentDoorHadiths.value = repository.getHadithsByDoor(hadithDetails.door.id)
+                updateCachedHadiths()
+                preferences.saveReadingProgress(hadithDetails.hadith.id)
             }
-            isLoading.value = false
+        }
+
+        if(cachedHadiths.contains(hadithId)) {
+            cachedHadiths[hadithId]?.let {
+                currentHadith.value = it
+                onHadithDetailsLoaded(it)
+            }
+        }
+        else {
+            viewModelScope.launch {
+                loadHadithDetails(hadithId)?.let {
+                    currentHadith.value = it
+                    onHadithDetailsLoaded(it)
+                }
+            }
         }
     }
 
