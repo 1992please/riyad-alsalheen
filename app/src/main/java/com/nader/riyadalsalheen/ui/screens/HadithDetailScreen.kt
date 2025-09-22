@@ -61,13 +61,9 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
 data class HadithDetailUiState(
-    val currentHadith: HadithDetails? = null,
-    val prevHadith: HadithDetails? = null,
-    val nextHadith: HadithDetails? = null,
     val hadithCount: Int = 0,
     val fontSize: Float = 18f,
     val bookmarks: List<Hadith> = emptyList(),
-    val isLoading: Boolean = false
 )
 
 @Composable
@@ -75,17 +71,19 @@ fun HadithDetailScreen(
     viewModel: MainViewModel,
     onSearch: () -> Unit
 ) {
+    val currentHadith = viewModel.currentHadith.value
+    if (currentHadith == null) {
+        return LoadingContent()
+    }
+
     val uiState = HadithDetailUiState(
-        currentHadith = viewModel.currentHadith.value,
-        prevHadith = viewModel.currentHadith.value?.let { viewModel.cachedHadiths[it.hadith.id - 1] },
-        nextHadith = viewModel.currentHadith.value?.let { viewModel.cachedHadiths[it.hadith.id + 1] },
         hadithCount = viewModel.hadithCount.intValue,
         fontSize = viewModel.fontSize.floatValue,
-        bookmarks = viewModel.bookmarks.value,
-        isLoading = viewModel.isLoading.value
+        bookmarks = viewModel.bookmarks.value
     )
     HadithDetailContent(
         uiState = uiState,
+        getHadith = { id -> viewModel.cachedHadiths[id] ?:currentHadith },
         onSearch = onSearch,
         onLoadHadith = { id ->
             viewModel.navigateToHadith(id)
@@ -94,9 +92,7 @@ fun HadithDetailScreen(
             viewModel.updateFontSize(size)
         },
         onToggleBookmark = {
-            if(uiState.currentHadith != null) {
-                viewModel.toggleBookmark(uiState.currentHadith.hadith.id)
-            }
+            viewModel.toggleBookmark(currentHadith.hadith.id)
         }
     )
 }
@@ -105,16 +101,15 @@ fun HadithDetailScreen(
 @Composable
 fun HadithDetailContent(
     uiState : HadithDetailUiState,
+    getHadith: (Int) -> HadithDetails,
     onSearch: () -> Unit = {},
     onLoadHadith: (Int) -> Unit = {},
     onUpdateFontSize: (Float) -> Unit = {},
     onToggleBookmark: () -> Unit = {}
 )
 {
-    if (uiState.currentHadith == null || uiState.isLoading) {
-        return LoadingContent()
-    }
-    val isBookmarked = uiState.bookmarks.any { uiState.currentHadith.hadith.id == it.id }
+    val currentHadith = getHadith(0)
+    val isBookmarked = uiState.bookmarks.any { currentHadith.hadith.id == it.id }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showShareDialog by remember { mutableStateOf(false) }
@@ -123,21 +118,21 @@ fun HadithDetailContent(
 
     // Pager state for swipe navigation
     val pagerState = rememberPagerState(
-        initialPage = uiState.currentHadith.hadith.id - 1,
+        initialPage = currentHadith.hadith.id - 1,
         pageCount = { uiState.hadithCount }
     )
 
     // Track page changes
     LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage + 1 != uiState.currentHadith.hadith.id) {
+        if (pagerState.currentPage + 1 != currentHadith.hadith.id) {
             onLoadHadith(pagerState.currentPage + 1)
         }
     }
 
     // Update pager when hadith changes from other sources
-    LaunchedEffect(uiState.currentHadith.hadith.id) {
-        if (pagerState.currentPage != uiState.currentHadith.hadith.id - 1) {
-            pagerState.animateScrollToPage(uiState.currentHadith.hadith.id - 1)
+    LaunchedEffect(currentHadith.hadith.id) {
+        if (pagerState.currentPage != currentHadith.hadith.id - 1) {
+            pagerState.animateScrollToPage(currentHadith.hadith.id - 1)
         }
     }
 
@@ -156,12 +151,12 @@ fun HadithDetailContent(
                 title = {
                     Column {
                         Text(
-                            text = "الحديث ${uiState.currentHadith.hadith.id}",
+                            text = "الحديث ${currentHadith.hadith.id}",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = uiState.currentHadith.hadith.title,
+                            text = currentHadith.hadith.title,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -204,25 +199,11 @@ fun HadithDetailContent(
             beyondViewportPageCount = 1 // Pre-load adjacent pages
         ) { page ->
             // Show current hadith content or placeholder while loading
-            when (page + 1){
-                uiState.currentHadith.hadith.id -> HadithPageContent(
-                    currentHadith = uiState.currentHadith,
-                    fontSize = uiState.fontSize,
-                    onShare = { showShareDialog = true }
-                )
-                uiState.currentHadith.hadith.id + 1 -> if(uiState.nextHadith != null)
-                    HadithPageContent(
-                        currentHadith = uiState.nextHadith,
-                        fontSize = uiState.fontSize,
-                        onShare = { showShareDialog = true }
-                    )
-                uiState.currentHadith.hadith.id - 1 -> if(uiState.prevHadith != null)
-                    HadithPageContent(
-                        currentHadith = uiState.prevHadith,
-                        fontSize = uiState.fontSize,
-                        onShare = { showShareDialog = true }
-                    )
-            }
+            HadithPageContent(
+                currentHadith = getHadith(page + 1),
+                fontSize = uiState.fontSize,
+                onShare = { showShareDialog = true }
+            )
         }
     }
 
@@ -264,11 +245,11 @@ fun HadithDetailContent(
                     TextButton(
                         onClick = {
                             val shareText = buildString {
-                                appendLine(uiState.currentHadith.hadith.title)
+                                appendLine(currentHadith.hadith.title)
                                 appendLine()
-                                appendLine(uiState.currentHadith.hadith.matn.replace(Regex("<[^>]*>"), ""))
+                                appendLine(currentHadith.hadith.matn.replace(Regex("<[^>]*>"), ""))
                                 appendLine()
-                                appendLine("رياض الصالحين - الحديث ${uiState.currentHadith.hadith.id}")
+                                appendLine("رياض الصالحين - الحديث ${currentHadith.hadith.id}")
                             }
                             showShareDialog = false
 
@@ -285,7 +266,7 @@ fun HadithDetailContent(
 
                     TextButton(
                         onClick = {
-                            val shareText = uiState.currentHadith.hadith.matn.replace(Regex("<[^>]*>"), "")
+                            val shareText = currentHadith.hadith.matn.replace(Regex("<[^>]*>"), "")
                             showShareDialog = false
                             coroutineScope.launch {
                                 val clipData = ClipData.newPlainText("hadith", shareText)
@@ -431,7 +412,11 @@ fun HadithDetailPreview() {
     RiyadalsalheenTheme {
         HadithDetailContent(
             uiState = HadithDetailUiState(
-                currentHadith = HadithDetails(
+                hadithCount = 10,
+                fontSize = 18f
+            ),
+            getHadith = {
+                HadithDetails(
                     hadith = Hadith(
                         id = 3,
                         doorId = 4,
@@ -492,10 +477,8 @@ fun HadithDetailPreview() {
                     ),
                     door= Door(2, 3, "باب تعظيم حرمات المسلمين وبيان حقوقهم والشفقة عليهم ورحمتهم"),
                     book= Book(3, "كتاب عيادة المريض وتشييع الميت والصلاة عليه وحضور دفنه والمكث عند قبره بعد دفنه")
-                ),
-                hadithCount = 10,
-                fontSize = 18f
-            )
+                )
+            }
         )
     }
 }

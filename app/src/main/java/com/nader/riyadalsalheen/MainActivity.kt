@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.screens.HadithDetailScreen
 import com.nader.riyadalsalheen.ui.screens.SearchScreen
 import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
@@ -39,6 +40,8 @@ fun MainActivityComposable() {
     RiyadalsalheenTheme(darkTheme = viewModel.isDarkTheme.value) {
         Surface(modifier = Modifier.fillMaxSize()) {
             val navController = rememberNavController()
+
+            if(viewModel.isLoading.value) LoadingContent()
 
             NavHost(
                 navController = navController,
