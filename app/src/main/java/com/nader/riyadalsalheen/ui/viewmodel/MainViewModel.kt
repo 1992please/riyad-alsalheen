@@ -2,7 +2,6 @@ package com.nader.riyadalsalheen.ui.viewmodel
 
 import android.app.Application
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,10 +10,9 @@ import com.nader.riyadalsalheen.data.repository.RiyadSalheenRepository
 import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
 import com.nader.riyadalsalheen.model.Hadith
+import com.nader.riyadalsalheen.model.HadithDetails
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-
-data class HadithDetails(val hadith: Hadith, val door: Door, val book: Book)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = RiyadSalheenRepository(application)
@@ -22,129 +20,84 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val packageInfo = application.packageManager.getPackageInfo(application.packageName, 0)
 
     // UI States
-    val books = mutableStateOf(emptyList<Book>())
+    var books = emptyList<Book>()
+    var doors = emptyList<Door>()
+    var hadithCount = 0
 
+    val cachedHadiths: MutableMap<Int, HadithDetails> = mutableMapOf()
 
-    val hadithCount = mutableIntStateOf(0)
+    var currentHadithId = 0
     val searchResults = mutableStateOf(emptyList<Hadith>())
     val isDarkTheme = mutableStateOf(false)
     val fontSize = mutableFloatStateOf(18f)
     val bookmarks = mutableStateOf(emptyList<Hadith>())
 
-    // Current navigation state
-    val currentBookDoors = mutableStateOf(emptyList<Door>())
-    val currentDoorHadiths = mutableStateOf(emptyList<Hadith>())
-    val currentHadith = mutableStateOf<HadithDetails?>(null)
-    val cachedHadiths: MutableMap<Int, HadithDetails> = mutableMapOf()
-
     // Loading states
-    val isLoading = mutableStateOf(false)
+    val isInitialDataLoaded = mutableStateOf(false)
     val isSearching = mutableStateOf(false)
 
 
     init {
         viewModelScope.launch {
-            isLoading.value = true
-
-            hadithCount.intValue = repository.getHadithsCount()
-
-            books.value = repository.getAllBooks()
+            books = repository.getAllBooks()
+            doors = repository.getAllDoors()
+            hadithCount = repository.getHadithsCount()
 
             fontSize.floatValue = preferences.fontSize.first()
             isDarkTheme.value = preferences.isDarkTheme.first()
+            bookmarks.value = preferences.bookmarks
+                .first()
+                .mapNotNull { it.toIntOrNull() }
+                .let { repository.getHadithsByIds(it) }
+            currentHadithId = preferences.readingProgress.first()
+            updateCachedHadiths()
 
-            val initialBookmarks = preferences.bookmarks.first()
-            val bookmarkIds = initialBookmarks.mapNotNull { it.toIntOrNull() }
-            bookmarks.value = repository.getHadithsByIds(bookmarkIds)
-
-            val savedProgress = preferences.readingProgress.first()
-            navigateToHadith(savedProgress)
-
-            isLoading.value = false
-        }
-    }
-
-    // Navigation functions
-    fun navigateToBook(bookId: Int) {
-        viewModelScope.launch {
-            currentBookDoors.value = repository.getDoorsByBook(bookId)
-        }
-    }
-
-    fun navigateToDoor(doorId: Int) {
-        viewModelScope.launch {
-            currentDoorHadiths.value = repository.getHadithsByDoor(doorId)
+            isInitialDataLoaded.value = true
         }
     }
 
     private fun loadHadithDetails(hadithId: Int): HadithDetails? {
-        if(hadithId < 1 || hadithId > hadithCount.intValue) {
+        if(hadithId < 1 || hadithId > hadithCount) {
             return null
+        }
+
+        if (cachedHadiths.containsKey(hadithId)) {
+            return cachedHadiths[hadithId]
         }
 
         val hadith = repository.getHadithById(hadithId)
         if (hadith != null) {
-            val door = repository.getDoorById(doorId = hadith.doorId)
-            val book = books.value.find { it.id == hadith.bookId }
-            if(door != null && book != null) {
-                return HadithDetails(
-                    hadith = hadith,
-                    door = door,
-                    book = book
-                )
-            }
+            val newHadith = HadithDetails(
+                hadith = hadith,
+                door = doors[hadith.doorId],
+                book = books[hadith.bookId]
+            )
+            cachedHadiths[hadithId] = newHadith
+            return newHadith
         }
         return null
     }
 
     private fun updateCachedHadiths() {
-        val hadithDetail = currentHadith.value ?: return
-
-        val currentId = hadithDetail.hadith.id
-        val minId = (currentId - 3).coerceIn(1, hadithCount.intValue)
-        val maxId = (currentId + 3).coerceIn(1, hadithCount.intValue)
+        val currentId = currentHadithId
+        val minId = (currentId - 3).coerceIn(1, hadithCount)
+        val maxId = (currentId + 3).coerceIn(1, hadithCount)
 
         // Remove unneeded items first for efficiency
         cachedHadiths.entries.removeIf { kotlin.math.abs(it.key - currentId) > 3 }
 
         // Use a more idiomatic way to add missing items
         (minId..maxId).forEach { idx ->
-            if (!cachedHadiths.containsKey(idx)) {
-                loadHadithDetails(idx)?.let { cachedHadiths[idx] = it }
-            }
+            loadHadithDetails(idx)
         }
     }
 
     fun navigateToHadith(hadithId: Int) {
-        if(
-            hadithId < 1 ||
-            hadithId > hadithCount.intValue ||
-            hadithId == currentHadith.value?.hadith?.id
-        ) {
-            return
-        }
-
-        val onHadithDetailsLoaded: (HadithDetails) -> Unit = { hadithDetails ->
+        if(currentHadithId != hadithId) {
+            currentHadithId = hadithId
             viewModelScope.launch {
-                currentBookDoors.value = repository.getDoorsByBook(hadithDetails.book.id)
-                currentDoorHadiths.value = repository.getHadithsByDoor(hadithDetails.door.id)
                 updateCachedHadiths()
-                preferences.saveReadingProgress(hadithDetails.hadith.id)
-            }
-        }
-
-        if(cachedHadiths.contains(hadithId)) {
-            cachedHadiths[hadithId]?.let {
-                currentHadith.value = it
-                onHadithDetailsLoaded(it)
-            }
-        }
-        else {
-            viewModelScope.launch {
-                loadHadithDetails(hadithId)?.let {
-                    currentHadith.value = it
-                    onHadithDetailsLoaded(it)
-                }
+                preferences.saveReadingProgress(hadithId)
             }
         }
     }

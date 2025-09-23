@@ -8,3 +8,5 @@ data class Hadith(
     val matn: String,
     val sharh: String
 )
+
+data class HadithDetails(val hadith: Hadith, val door: Door, val book: Book)

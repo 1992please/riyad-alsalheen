@@ -22,8 +22,8 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        //enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-
         setContent {
             CompositionLocalProvider(
                 LocalLayoutDirection provides LayoutDirection.Rtl
@@ -37,23 +37,19 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainActivityComposable() {
     val viewModel: MainViewModel = viewModel()
-    RiyadalsalheenTheme(darkTheme = viewModel.isDarkTheme.value) {
+
+    if(!viewModel.isInitialDataLoaded.value)
+        return LoadingContent()
+
+    RiyadalsalheenTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             val navController = rememberNavController()
-
-            if(viewModel.isLoading.value) LoadingContent()
-
             NavHost(
                 navController = navController,
-                startDestination = "hadithDetail/{hadithId}"
+                startDestination = "hadithDetail/${viewModel.currentHadithId}"
             ) {
                 composable("hadithDetail/{hadithId}") { backStackEntry ->
-                    val hadithId = backStackEntry.arguments?.getInt("hadithId") ?: 0
-                    val currentHadith = viewModel.currentHadith.value
-                    if(hadithId == 0 && currentHadith != null) {
-                        backStackEntry.arguments?.putString("hadithId", currentHadith.hadith.id.toString())
-                    }
-
+                    val hadithId = backStackEntry.arguments?.getString("hadithId")?.toIntOrNull() ?: 0
                     viewModel.navigateToHadith(hadithId)
                     HadithDetailScreen(
                         viewModel = viewModel,

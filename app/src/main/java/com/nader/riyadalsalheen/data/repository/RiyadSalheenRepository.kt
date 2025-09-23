@@ -37,27 +37,10 @@ class RiyadSalheenRepository(context: Context) {
         return books
     }
 
-    fun getBookById(bookId: Int): Book? {
-        val query = "SELECT * FROM $TABLE_BOOKS WHERE $COLUMN_ID = ?"
-        val selectionArgs = arrayOf(bookId.toString())
-
-        database.rawQuery(query, selectionArgs).use { cursor ->
-            if (cursor.moveToFirst()) {
-                return Book(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE))
-                )
-            }
-        }
-        return null
-    }
-
-    fun getDoorsByBook(bookId: Int): List<Door> {
+    fun getAllDoors(): List<Door> {
         val doors = mutableListOf<Door>()
-        val query = "SELECT * FROM $TABLE_DOORS WHERE $COLUMN_BOOK_ID = ? ORDER BY $COLUMN_ID ASC"
-        val selectionArgs = arrayOf(bookId.toString())
-
-        database.rawQuery(query, selectionArgs).use { cursor ->
+        val query = "SELECT * FROM $TABLE_DOORS ORDER BY $COLUMN_ID ASC"
+        database.rawQuery(query, null).use { cursor ->
             while (cursor.moveToNext()) {
                 doors.add(Door(
                     id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
@@ -69,22 +52,7 @@ class RiyadSalheenRepository(context: Context) {
         return doors
     }
 
-    fun getDoorById(doorId: Int): Door? {
-        val query = "SELECT * FROM $TABLE_DOORS WHERE $COLUMN_ID = ?"
-        val selectionArgs = arrayOf(doorId.toString())
-
-        database.rawQuery(query, selectionArgs).use { cursor ->
-            if (cursor.moveToFirst()) {
-                return Door(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE))
-                )
-            }
-        }
-        return null
-    }
-
+    // TODO return hadith detail instead of Hadith
     fun getHadithsByDoor(doorId: Int): List<Hadith> {
         val hadiths = mutableListOf<Hadith>()
         val query = "SELECT * FROM $TABLE_HADITHS WHERE $COLUMN_DOOR_ID = ? ORDER BY $COLUMN_ID ASC"

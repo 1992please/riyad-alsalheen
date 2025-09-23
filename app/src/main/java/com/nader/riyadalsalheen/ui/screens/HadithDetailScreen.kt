@@ -2,6 +2,7 @@ package com.nader.riyadalsalheen.ui.screens
 
 import android.content.ClipData
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,15 +54,16 @@ import com.nader.riyadalsalheen.R
 import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
 import com.nader.riyadalsalheen.model.Hadith
+import com.nader.riyadalsalheen.model.HadithDetails
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.NavigationBreadcrumb
 import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
-import com.nader.riyadalsalheen.ui.viewmodel.HadithDetails
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
 data class HadithDetailUiState(
+    val initHadithID: Int = 0,
     val hadithCount: Int = 0,
     val fontSize: Float = 18f,
     val bookmarks: List<Hadith> = emptyList(),
@@ -71,19 +74,19 @@ fun HadithDetailScreen(
     viewModel: MainViewModel,
     onSearch: () -> Unit
 ) {
-    val currentHadith = viewModel.currentHadith.value
-    if (currentHadith == null) {
-        return LoadingContent()
+    SideEffect {
+        Log.d("Recompose", "HadithDetailScreen recomposed")
     }
 
     val uiState = HadithDetailUiState(
-        hadithCount = viewModel.hadithCount.intValue,
+        initHadithID = viewModel.currentHadithId,
+        hadithCount = viewModel.hadithCount,
         fontSize = viewModel.fontSize.floatValue,
         bookmarks = viewModel.bookmarks.value
     )
     HadithDetailContent(
         uiState = uiState,
-        getHadith = { id -> viewModel.cachedHadiths[id] ?:currentHadith },
+        getHadith = { id -> viewModel.cachedHadiths[id] },
         onSearch = onSearch,
         onLoadHadith = { id ->
             viewModel.navigateToHadith(id)
@@ -92,7 +95,7 @@ fun HadithDetailScreen(
             viewModel.updateFontSize(size)
         },
         onToggleBookmark = {
-            viewModel.toggleBookmark(currentHadith.hadith.id)
+            viewModel.toggleBookmark(viewModel.currentHadithId)
         }
     )
 }
@@ -101,14 +104,28 @@ fun HadithDetailScreen(
 @Composable
 fun HadithDetailContent(
     uiState : HadithDetailUiState,
-    getHadith: (Int) -> HadithDetails,
+    getHadith: (Int) -> HadithDetails?,
     onSearch: () -> Unit = {},
     onLoadHadith: (Int) -> Unit = {},
     onUpdateFontSize: (Float) -> Unit = {},
     onToggleBookmark: () -> Unit = {}
 )
 {
-    val currentHadith = getHadith(0)
+    SideEffect {
+        Log.d("Recompose", "HadithDetailContent recomposed")
+    }
+
+    // Pager state for swipe navigation
+    val pagerState = rememberPagerState(
+        initialPage = uiState.initHadithID - 1,
+        pageCount = { uiState.hadithCount }
+    )
+    val currentHadith = getHadith(pagerState.currentPage + 1)
+    if(currentHadith == null)
+    {
+        return LoadingContent()
+    }
+
     val isBookmarked = uiState.bookmarks.any { currentHadith.hadith.id == it.id }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -116,23 +133,17 @@ fun HadithDetailContent(
     var showFontSizeDialog by remember { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
 
-    // Pager state for swipe navigation
-    val pagerState = rememberPagerState(
-        initialPage = currentHadith.hadith.id - 1,
-        pageCount = { uiState.hadithCount }
-    )
+
 
     // Track page changes
     LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage + 1 != currentHadith.hadith.id) {
-            onLoadHadith(pagerState.currentPage + 1)
-        }
+        onLoadHadith(pagerState.currentPage + 1)
     }
 
     // Update pager when hadith changes from other sources
-    LaunchedEffect(currentHadith.hadith.id) {
-        if (pagerState.currentPage != currentHadith.hadith.id - 1) {
-            pagerState.animateScrollToPage(currentHadith.hadith.id - 1)
+    LaunchedEffect(uiState.initHadithID) {
+        if (pagerState.currentPage != uiState.initHadithID - 1) {
+            pagerState.scrollToPage(uiState.initHadithID - 1)
         }
     }
 
@@ -291,10 +302,15 @@ fun HadithDetailContent(
 
 @Composable
 fun HadithPageContent(
-    currentHadith: HadithDetails,
+    currentHadith: HadithDetails?,
     fontSize: Float,
     onShare: () -> Unit
 ) {
+    if(currentHadith == null)
+    {
+        return LoadingContent()
+    }
+
     val scrollState = rememberScrollState()
 
     Column(

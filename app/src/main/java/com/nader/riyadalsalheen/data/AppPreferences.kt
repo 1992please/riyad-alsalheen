@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -22,8 +21,6 @@ class AppPreferences(private val context: Context) {
         val FONT_SIZE = floatPreferencesKey("font_size")
         val BOOKMARKS = stringSetPreferencesKey("bookmarks")
         val READING_PROGRESS = intPreferencesKey("reading_progress")
-        val DAILY_HADITH_ENABLED = booleanPreferencesKey("daily_hadith_enabled")
-        val NOTIFICATION_TIME = stringPreferencesKey("notification_time")
     }
 
     // Save dark theme preference
@@ -81,32 +78,6 @@ class AppPreferences(private val context: Context) {
     val readingProgress: Flow<Int> = context.dataStore.data
         .map { preferences ->
             preferences[READING_PROGRESS] ?: 1
-        }
-
-    // Save daily hadith preference
-    suspend fun saveDailyHadithEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[DAILY_HADITH_ENABLED] = enabled
-        }
-    }
-
-    // Get daily hadith preference
-    val isDailyHadithEnabled: Flow<Boolean> = context.dataStore.data
-        .map { preferences ->
-            preferences[DAILY_HADITH_ENABLED] ?: false
-        }
-
-    // Save notification time
-    suspend fun saveNotificationTime(time: String) {
-        context.dataStore.edit { preferences ->
-            preferences[NOTIFICATION_TIME] = time
-        }
-    }
-
-    // Get notification time
-    val notificationTime: Flow<String> = context.dataStore.data
-        .map { preferences ->
-            preferences[NOTIFICATION_TIME] ?: "08:00"
         }
 
     // Clear all preferences
