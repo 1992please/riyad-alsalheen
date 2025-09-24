@@ -3,6 +3,7 @@ package com.nader.riyadalsalheen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -22,54 +23,55 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        //enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
+            val viewModel: MainViewModel = viewModel()
             CompositionLocalProvider(
                 LocalLayoutDirection provides LayoutDirection.Rtl
             ) {
-                MainActivityComposable()
+                RiyadalsalheenTheme {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        if (!viewModel.isInitialDataLoaded.value) {
+                            LoadingContent()
+                        } else {
+                            MainActivityComposable(viewModel)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun MainActivityComposable() {
-    val viewModel: MainViewModel = viewModel()
-
-    if(!viewModel.isInitialDataLoaded.value)
-        return LoadingContent()
-
-    RiyadalsalheenTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            val navController = rememberNavController()
-            NavHost(
-                navController = navController,
-                startDestination = "hadithDetail/${viewModel.currentHadithId}"
-            ) {
-                composable("hadithDetail/{hadithId}") { backStackEntry ->
-                    val hadithId = backStackEntry.arguments?.getString("hadithId")?.toIntOrNull() ?: 0
-                    viewModel.navigateToHadith(hadithId)
-                    HadithDetailScreen(
-                        viewModel = viewModel,
-                        onSearch = {
-                            navController.navigate("search")
-                        }
-                    )
+fun MainActivityComposable(viewModel: MainViewModel) {
+    val navController = rememberNavController()
+    NavHost(
+        navController = navController,
+        startDestination = "hadithDetail/${viewModel.currentHadithId}"
+    ) {
+        composable("hadithDetail/{hadithId}") { backStackEntry ->
+            val hadithId =
+                backStackEntry.arguments?.getString("hadithId")?.toIntOrNull() ?: 0
+            viewModel.navigateToHadith(hadithId)
+            HadithDetailScreen(
+                viewModel = viewModel,
+                onSearch = {
+                    navController.navigate("search")
                 }
-                composable("search") {
-                    SearchScreen(
-                        viewModel = viewModel,
-                        onHadithSelected = { hadithId ->
-                            navController.navigate("hadithDetail/$hadithId")
-                        },
-                        onBackPressed = {
-                            navController.navigateUp()
-                        }
-                    )
+            )
+        }
+        composable("search") {
+            SearchScreen(
+                viewModel = viewModel,
+                onHadithSelected = { hadithId ->
+                    navController.navigate("hadithDetail/$hadithId")
+                },
+                onBackPressed = {
+                    navController.navigateUp()
                 }
-            }
+            )
         }
     }
 }
