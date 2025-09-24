@@ -1,8 +1,6 @@
 package com.nader.riyadalsalheen.ui.screens
 
 import android.content.ClipData
-import android.content.res.Configuration
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,10 +17,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
@@ -31,9 +31,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,7 +47,6 @@ import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
@@ -58,11 +57,13 @@ import com.nader.riyadalsalheen.model.HadithDetails
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.NavigationBreadcrumb
-import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
+import com.nader.riyadalsalheen.ui.components.NavigationDrawer
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
 data class HadithDetailUiState(
+    val books: List<Book> = emptyList(),
+    val doors: List<Door> = emptyList(),
     val initHadithID: Int = 0,
     val hadithCount: Int = 0,
     val fontSize: Float = 18f,
@@ -72,13 +73,12 @@ data class HadithDetailUiState(
 @Composable
 fun HadithDetailScreen(
     viewModel: MainViewModel,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
+    onNavigateToHadith: (Int) -> Unit
 ) {
-    SideEffect {
-        Log.d("Recompose", "HadithDetailScreen recomposed")
-    }
-
     val uiState = HadithDetailUiState(
+        books = viewModel.books,
+        doors = viewModel.doors,
         initHadithID = viewModel.currentHadithId,
         hadithCount = viewModel.hadithCount,
         fontSize = viewModel.fontSize.floatValue,
@@ -86,17 +86,13 @@ fun HadithDetailScreen(
     )
     HadithDetailContent(
         uiState = uiState,
-        getHadith = { id -> viewModel.cachedHadiths[id] },
+        getHadith = { viewModel.cachedHadiths[it] },
+        getFirstHadithIdInDoor = { viewModel.getFirstHadithIdInDoor(it) },
         onSearch = onSearch,
-        onLoadHadith = { id ->
-            viewModel.navigateToHadith(id)
-        },
-        onUpdateFontSize = { size ->
-            viewModel.updateFontSize(size)
-        },
-        onToggleBookmark = {
-            viewModel.toggleBookmark(viewModel.currentHadithId)
-        }
+        onNavigateToHadith = onNavigateToHadith,
+        onLoadHadith = { viewModel.navigateToHadith(it) },
+        onUpdateFontSize = { viewModel.updateFontSize(it) },
+        onToggleBookmark = { viewModel.toggleBookmark(it) }
     )
 }
 
@@ -105,16 +101,14 @@ fun HadithDetailScreen(
 fun HadithDetailContent(
     uiState : HadithDetailUiState,
     getHadith: (Int) -> HadithDetails?,
+    getFirstHadithIdInDoor: (Int) -> Int?,
     onSearch: () -> Unit = {},
+    onNavigateToHadith: (Int) -> Unit = {},
     onLoadHadith: (Int) -> Unit = {},
     onUpdateFontSize: (Float) -> Unit = {},
-    onToggleBookmark: () -> Unit = {}
+    onToggleBookmark: (Int) -> Unit = {}
 )
 {
-    SideEffect {
-        Log.d("Recompose", "HadithDetailContent recomposed")
-    }
-
     // Pager state for swipe navigation
     val pagerState = rememberPagerState(
         initialPage = uiState.initHadithID - 1,
@@ -132,7 +126,7 @@ fun HadithDetailContent(
     var showShareDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
     val clipboard = LocalClipboard.current
-
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
 
     // Track page changes
@@ -147,74 +141,109 @@ fun HadithDetailContent(
         }
     }
 
-    Scaffold (
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = onSearch) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
-                            contentDescription = "البحث"
-                        )
-                    }
-                },
-                title = {
-                    Column {
-                        Text(
-                            text = "الحديث ${currentHadith.hadith.id}",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = currentHadith.hadith.title,
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            onToggleBookmark()
-                            coroutineScope.launch {
-                                val message = if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
-                                snackbarHostState.showSnackbar(message)
-                            }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            NavigationDrawer(
+                books = uiState.books,
+                doors = uiState.doors,
+                hadithCount = uiState.hadithCount,
+                currentBookId = currentHadith.book.id,
+                currentDoorId = currentHadith.door.id,
+                onNavigateToDoor = { doorId ->
+                    coroutineScope.launch {
+                        getFirstHadithIdInDoor(doorId)?.let {
+                            onNavigateToHadith(it)
                         }
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_filled_24 else R.drawable.ic_bookmark_24),
-                            contentDescription = "المفضلة",
-                            tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = { showFontSizeDialog = true }) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_text_fields_24),
-                            contentDescription = "حجم الخط"
-                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                onClose = {
+                    coroutineScope.launch { drawerState.close() }
+                }
             )
         }
-    ){ paddingValues ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            beyondViewportPageCount = 1 // Pre-load adjacent pages
-        ) { page ->
-            // Show current hadith content or placeholder while loading
-            HadithPageContent(
-                currentHadith = getHadith(page + 1),
-                fontSize = uiState.fontSize,
-                onShare = { showShareDialog = true }
-            )
+    ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch { drawerState.open() }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
+                                contentDescription = "القائمة"
+                            )
+                        }
+                    },
+                    title = {
+                        Column {
+                            Text(
+                                text = "الحديث ${currentHadith.hadith.id}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = currentHadith.hadith.title,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                onToggleBookmark(currentHadith.hadith.id)
+                                coroutineScope.launch {
+                                    val message =
+                                        if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
+                                    snackbarHostState.showSnackbar(message)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_filled_24 else R.drawable.ic_bookmark_24),
+                                contentDescription = "المفضلة",
+                                tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = { showFontSizeDialog = true }) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_text_fields_24),
+                                contentDescription = "حجم الخط"
+                            )
+                        }
+
+                        IconButton(onClick = onSearch) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
+                                contentDescription = "البحث"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+        ) { paddingValues ->
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                beyondViewportPageCount = 1 // Pre-load adjacent pages
+            ) { page ->
+                // Show current hadith content or placeholder while loading
+                HadithPageContent(
+                    currentHadith = getHadith(page + 1),
+                    fontSize = uiState.fontSize,
+                    onShare = { showShareDialog = true }
+                )
+            }
         }
     }
 
@@ -409,92 +438,5 @@ fun HadithPageContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Preview(
-    name = "Default Light Theme",
-    showBackground = true,
-    locale = "ar"
-)
-@Preview(
-    name = "Dark Theme",
-    showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-    locale = "ar"
-)
-@Composable
-fun HadithDetailPreview() {
-    RiyadalsalheenTheme {
-        HadithDetailContent(
-            uiState = HadithDetailUiState(
-                hadithCount = 10,
-                fontSize = 18f
-            ),
-            getHadith = {
-                HadithDetails(
-                    hadith = Hadith(
-                        id = 3,
-                        doorId = 4,
-                        bookId = 8,
-                        title = "إنما الأعمال بالنيات",
-                        matn = "<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent; color:rgb(0, 0, 0)\">وعَنْ أَميرِ الْمُؤْمِنِينَ أبي حفْصٍ عُمرَ بنِ الْخَطَّابِ بْن نُفَيْل بْنِ عَبْد الْعُزَّى بن رياح بْن عبدِ اللَّهِ بْن قُرْطِ بْنِ رزاح بْنِ عَدِيِّ بْن كَعْبِ بْن لُؤَيِّ بن غالبٍ القُرَشِيِّ العدويِّ . رضي الله عنه ، قال : سمعْتُ رسُولَ الله صَلّى اللهُ عَلَيْهِ وسَلَّم يقُولُ &nbsp;</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">&laquo; </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">إنَّما</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> الأَعمالُ </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">بالنِّيَّات</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> ، وإِنَّمَا لِكُلِّ امرئٍ مَا نَوَى ، فمنْ كانَتْ </span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\">هجْرَتُهُ</span><span style=\"background-color:transparent; color:rgb(0, 0, 255)\"> إِلَى الله ورَسُولِهِ فهجرتُه إلى الله ورسُولِهِ ، ومنْ كاَنْت هجْرَتُه لدُنْيَا يُصيبُها ، أَو امرَأَةٍ يَنْكحُها فهْجْرَتُهُ إلى ما هَاجَر إليْهِ &raquo;</span></span></span></p>\n" +
-                                "\n" +
-                                "\n" +
-                                "\n" +
-                                "<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent; color:rgb(0, 0, 0)\">متَّفَقٌ على صحَّتِه. رواهُ إِماما المُحَدِّثِين: أَبُو عَبْدِ الله مُحَمَّدُ بنُ إِسْمَاعيل بْن إِبْراهيمَ بْن الْمُغيرة بْن برْدزْبَهْ الْجُعْفِيُّ &nbsp;الْبُخَارِيُّ، وَأَبُو الحُسَيْنِ مُسْلمُ بْن الْحَجَّاجِ بن مُسلمٍ القُشَيْريُّ &nbsp;النَّيْسَابُوريُّ رَضَيَ الله عَنْهُمَا في صَحيحيهِما اللَّذَيْنِ هما أَصَحُّ الْكُتُبِ الْمُصَنَّفَة .</span></span></span></p>\n" +
-                                "\n" +
-                                "\n" +
-                                "\n" +
-                                "<div>&nbsp;</div>\n" +
-                                "\n" +
-                                "\n" +
-                                "\n" +
-                                "<p>&nbsp;</p>",
-                        sharh = "<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent; color:rgb(255, 0, 0)\">لغة الحديث</span><span style=\"background-color:transparent; color:rgb(152, 0, 0)\"> :</span></span></span></p>\n" +
-                                "\n" +
-                                "\n" +
-                                "\n" +
-                                "<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent; color:rgb(152, 0, 0)\">الحفص :</span><span style=\"background-color:transparent; color:rgb(0, 0, 0)\"> الأسد وأبو حفص كنية لعمر بن الخطاب .</span><br />\n" +
-                                "\n" +
-                                "<span style=\"background-color:transparent; color:rgb(152, 0, 0)\">إنما</span><span style=\"background-color:transparent; color:rgb(0, 0, 0)\"> : أداة حصر تفيد تقوية الحكم المذكور بعدها .</span><br />\n" +
-                                "\n" +
-                                "<span style=\"background-color:transparent; color:rgb(152, 0, 0)\">النيات</span><span style=\"background-color:transparent; color:rgb(0, 0, 0)\"> : جمع نية ، وهي مصدر أو اسم مصدر ، وهي في اللغة : القصد ، وفي الشرع : قصد الشيء مقترناً بفعله .</span><br />\n" +
-                                "\n" +
-                                "<span style=\"background-color:transparent; color:rgb(152, 0, 0)\">الهجرة</span><span style=\"background-color:transparent; color:rgb(0, 0, 0)\"> : لغة : الترك ، وشرعاً : مفارقة دار الكفر إلى دار الإسلام خوف الفتنة . </span></span></span></p>\n" +
-                                "\n" +
-                                "\n" +
-                                "\n" +
-                                "<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent; color:rgb(255, 0, 0)\">أفاد الحديث</span><span style=\"background-color:transparent; color:rgb(0, 0, 0)\"> : </span></span></span></p>\n" +
-                                "\n" +
-                                "\n" +
-                                "\n" +
-                                "<ol>\n" +
-                                "\n" +
-                                "\t<li dir=\"rtl\">\n" +
-                                "\n" +
-                                "\t<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent\">اتفق العلماء على أن النية في الأعمال لا بد منها ليترتب الثواب على فعلها ، ولكنهم فصَّلوا في جعلها شرطاً لصحة الأعمال ، فالشافعية قالوا : إنها شرط في الوسائل كالوضوء ، والمقاصد كالصلاة ، وقالت الحنفية : إن النية شرط في المقاصد لا في الوسائل</span></span></span></p>\n" +
-                                "\n" +
-                                "\t</li>\n" +
-                                "\n" +
-                                "\t<li dir=\"rtl\">\n" +
-                                "\n" +
-                                "\t<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent\">محل النية القلب ولا يُشرع التلفظ بها &nbsp;</span></span></span></p>\n" +
-                                "\n" +
-                                "\t</li>\n" +
-                                "\n" +
-                                "\t<li dir=\"rtl\">\n" +
-                                "\n" +
-                                "\t<p dir=\"rtl\" style=\"text-align:justify\"><span style=\"font-size:18pt\"><span style=\"font-family:tahoma,geneva,sans-serif\"><span style=\"background-color:transparent\">الإخلاص لله تعالى في العمل شرط من شروط قبوله ، فإن الله تعالى لا يقبل من العمل إلا ما كان خالصاً لوجهه الكريم .</span></span></span></p>\n" +
-                                "\n" +
-                                "\t</li>\n" +
-                                "\n" +
-                                "</ol>"
-                    ),
-                    door= Door(2, 3, "باب تعظيم حرمات المسلمين وبيان حقوقهم والشفقة عليهم ورحمتهم"),
-                    book= Book(3, "كتاب عيادة المريض وتشييع الميت والصلاة عليه وحضور دفنه والمكث عند قبره بعد دفنه")
-                )
-            }
-        )
     }
 }

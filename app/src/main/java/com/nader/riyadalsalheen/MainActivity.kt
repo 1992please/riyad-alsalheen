@@ -57,17 +57,14 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             viewModel.navigateToHadith(hadithId)
             HadithDetailScreen(
                 viewModel = viewModel,
-                onSearch = {
-                    navController.navigate("search")
-                }
+                onSearch = { navController.navigate("search") },
+                onNavigateToHadith = { navController.navigate("hadithDetail/$it") }
             )
         }
         composable("search") {
             SearchScreen(
                 viewModel = viewModel,
-                onHadithSelected = { hadithId ->
-                    navController.navigate("hadithDetail/$hadithId")
-                },
+                onHadithSelected = { navController.navigate("hadithDetail/$it") },
                 onBackPressed = {
                     navController.navigateUp()
                 }

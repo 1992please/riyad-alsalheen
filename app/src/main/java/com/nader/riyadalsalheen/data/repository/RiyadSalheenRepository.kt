@@ -73,6 +73,18 @@ class RiyadSalheenRepository(context: Context) {
         return hadiths
     }
 
+    fun getFirstHadithIdInDoor(doorId: Int): Int? {
+        val query = "SELECT $COLUMN_ID FROM $TABLE_HADITHS WHERE $COLUMN_DOOR_ID = ? ORDER BY $COLUMN_ID ASC LIMIT 1"
+        val selectionArgs = arrayOf(doorId.toString())
+
+        database.rawQuery(query, selectionArgs).use { cursor ->
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(0) // Get the ID from the first (and only) column
+            }
+        }
+        return null
+    }
+
     fun getHadithById(hadithId: Int): Hadith? {
         val query = "SELECT * FROM $TABLE_HADITHS WHERE $COLUMN_ID = ?"
         val selectionArgs = arrayOf(hadithId.toString())

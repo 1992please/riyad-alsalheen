@@ -69,8 +69,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (hadith != null) {
             val newHadith = HadithDetails(
                 hadith = hadith,
-                door = doors[hadith.doorId],
-                book = books[hadith.bookId]
+                door = doors[hadith.doorId - 1], // convert door/book id from 1 based to zero based
+                book = books[hadith.bookId - 1]
             )
             cachedHadiths[hadithId] = newHadith
             return newHadith
@@ -102,6 +102,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun getFirstHadithIdInDoor(doorId: Int): Int?{
+        return repository.getFirstHadithIdInDoor(doorId)
+    }
 
     fun searchHadiths(query: String) {
         if (query.isBlank() && query.length >= 3) {
