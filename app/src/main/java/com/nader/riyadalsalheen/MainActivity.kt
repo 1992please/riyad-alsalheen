@@ -1,16 +1,13 @@
 package com.nader.riyadalsalheen
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,23 +20,23 @@ import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             val viewModel: MainViewModel = viewModel()
-            CompositionLocalProvider(
-                LocalLayoutDirection provides LayoutDirection.Rtl
-            ) {
-                RiyadalsalheenTheme {
-                    Surface(modifier = Modifier.fillMaxSize()) {
-                        if (!viewModel.isInitialDataLoaded.value) {
-                            LoadingContent()
-                        } else {
-                            MainActivityComposable(viewModel)
-                        }
-                    }
+
+            viewModel.isDarkMode = if(viewModel.systemTheme.value) isSystemInDarkTheme() else !isSystemInDarkTheme()
+            RiyadalsalheenTheme (viewModel.isDarkMode, activity = this) {
+                if (!viewModel.isInitialDataLoaded.value) {
+                    LoadingContent()
+                } else {
+                    MainActivityComposable(viewModel)
                 }
             }
+
         }
     }
 }

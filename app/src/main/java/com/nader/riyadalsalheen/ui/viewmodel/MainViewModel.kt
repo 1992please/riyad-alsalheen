@@ -1,9 +1,11 @@
 package com.nader.riyadalsalheen.ui.viewmodel
 
 import android.app.Application
+import android.content.Intent
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.nader.riyadalsalheen.data.AppPreferences
 import com.nader.riyadalsalheen.data.repository.RiyadSalheenRepository
@@ -28,9 +30,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     var currentHadithId = 0
     val searchResults = mutableStateOf(emptyList<Hadith>())
-    val isDarkTheme = mutableStateOf(false)
+    val systemTheme = mutableStateOf(true)
     val fontSize = mutableFloatStateOf(18f)
     val bookmarks = mutableStateOf(emptyList<Hadith>())
+
+    var isDarkMode = false
 
     // Loading states
     val isInitialDataLoaded = mutableStateOf(false)
@@ -44,7 +48,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             hadithCount = repository.getHadithsCount()
 
             fontSize.floatValue = preferences.fontSize.first()
-            isDarkTheme.value = preferences.isDarkTheme.first()
+            systemTheme.value = preferences.systemTheme.first()
             bookmarks.value = preferences.bookmarks
                 .first()
                 .mapNotNull { it.toIntOrNull() }
@@ -129,10 +133,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toggleDarkTheme() {
+    fun toggleSystemTheme() {
         viewModelScope.launch {
-            isDarkTheme.value = !isDarkTheme.value
-            preferences.saveDarkTheme(!isDarkTheme.value)
+            systemTheme.value = !systemTheme.value
+            preferences.saveSystemTheme(systemTheme.value)
         }
     }
 
@@ -141,6 +145,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             fontSize.floatValue = size
             preferences.saveFontSize(fontSize.floatValue)
         }
+    }
+
+    fun shareHadith(hadithDetails: HadithDetails) {
+        val shareText = buildString {
+            appendLine("📖 ${hadithDetails.hadith.title}")
+            appendLine()
+            appendLine(hadithDetails.hadith.matn.replace(Regex("<[^>]*>"), "")) // Clean HTML tags for sharing
+            appendLine()
+            appendLine("Source: Riyad al Saleheen - Hadith #${hadithDetails.hadith.id}")
+        }
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, hadithDetails.hadith.title)
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+
+        // Use the Android Sharesheet
+        application.startActivity(Intent.createChooser(intent, "Share Hadith"))
     }
 
     override fun onCleared() {

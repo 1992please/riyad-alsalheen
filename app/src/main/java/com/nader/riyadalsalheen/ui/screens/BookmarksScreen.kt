@@ -52,7 +52,7 @@ fun BookmarksScreen(
 )
 {
     BookmarksScreenContent(
-        bookmarkedHadiths = viewModel.bookmarks.value,
+        bookmarks = viewModel.bookmarks.value,
         onHadithSelected = onHadithSelected,
         onRemoveBookmark = { hadithId ->
             viewModel.toggleBookmark(hadithId = hadithId)
@@ -64,7 +64,7 @@ fun BookmarksScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookmarksScreenContent(
-    bookmarkedHadiths: List<Hadith>,
+    bookmarks: List<Hadith>,
     onHadithSelected: (Int) -> Unit = {},
     onRemoveBookmark: (Int) -> Unit = {},
     onBackPressed: () -> Unit = {}
@@ -76,9 +76,9 @@ fun BookmarksScreenContent(
                 title = {
                     Column {
                         Text("المفضلة")
-                        if (bookmarkedHadiths.isNotEmpty()) {
+                        if (bookmarks.isNotEmpty()) {
                             Text(
-                                text = "${bookmarkedHadiths.size} حديث",
+                                text = "${bookmarks.size} حديث",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -94,7 +94,7 @@ fun BookmarksScreenContent(
                     }
                 },
                 actions = {
-                    if (bookmarkedHadiths.isNotEmpty()) {
+                    if (bookmarks.isNotEmpty()) {
                         var showClearDialog by remember { mutableStateOf(false) }
 
                         IconButton(onClick = { showClearDialog = true }) {
@@ -112,7 +112,7 @@ fun BookmarksScreenContent(
                                 confirmButton = {
                                     TextButton(
                                         onClick = {
-                                            bookmarkedHadiths.forEach { hadith ->
+                                            bookmarks.forEach { hadith ->
                                                 onRemoveBookmark(hadith.id)
                                             }
                                             showClearDialog = false
@@ -134,7 +134,7 @@ fun BookmarksScreenContent(
         }
     )
     { paddingValues ->
-        if (bookmarkedHadiths.isEmpty()) {
+        if (bookmarks.isEmpty()) {
             // Empty state
             Box(
                 modifier = Modifier
@@ -177,7 +177,7 @@ fun BookmarksScreenContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    items = bookmarkedHadiths.sortedBy { it.id },
+                    items = bookmarks.sortedBy { it.id },
                     key = { it.id }
                 ) { hadith ->
                     BookmarkItem(
@@ -308,7 +308,7 @@ fun BookmarkItem(
 fun BookmarksContentEmptyPreview() {
     RiyadalsalheenTheme {
         BookmarksScreenContent(
-            bookmarkedHadiths = emptyList()
+            bookmarks = emptyList()
         )
     }
 }
@@ -328,7 +328,7 @@ fun BookmarksContentEmptyPreview() {
 fun BookmarksContentPreview() {
     RiyadalsalheenTheme {
         BookmarksScreenContent(
-            bookmarkedHadiths = listOf(
+            bookmarks = listOf(
                 Hadith(
                     id = 1,
                     doorId = 1,

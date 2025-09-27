@@ -4,12 +4,10 @@ import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.nader.riyadalsalheen.data.repository.RiyadSalheenRepository
-
-import org.junit.Test
-import org.junit.runner.RunWith
-
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -56,7 +54,7 @@ class RepositoryTest {
         Log.d(TAG, "Starting test: testGetFirstBookDoors_returnsNonEmptyList")
 
         // When
-        val doors = repository.getDoorsByBook(1)
+        val doors = repository.getAllDoors()
         Log.d(TAG, "Retrieved doors of the first book ${doors.size} doors")
 
         // Then

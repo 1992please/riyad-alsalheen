@@ -1,15 +1,20 @@
 package com.nader.riyadalsalheen.ui.screens
 
-import android.content.ClipData
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,11 +45,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -61,6 +65,7 @@ import com.nader.riyadalsalheen.ui.components.NavigationDrawer
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
+
 data class HadithDetailUiState(
     val books: List<Book> = emptyList(),
     val doors: List<Door> = emptyList(),
@@ -68,6 +73,7 @@ data class HadithDetailUiState(
     val hadithCount: Int = 0,
     val fontSize: Float = 18f,
     val bookmarks: List<Hadith> = emptyList(),
+    val isDarkMode: Boolean
 )
 
 @Composable
@@ -82,17 +88,19 @@ fun HadithDetailScreen(
         initHadithID = viewModel.currentHadithId,
         hadithCount = viewModel.hadithCount,
         fontSize = viewModel.fontSize.floatValue,
-        bookmarks = viewModel.bookmarks.value
+        bookmarks = viewModel.bookmarks.value,
+        isDarkMode = viewModel.isDarkMode
     )
     HadithDetailContent(
         uiState = uiState,
         getHadith = { viewModel.cachedHadiths[it] },
-        getFirstHadithIdInDoor = { viewModel.getFirstHadithIdInDoor(it) },
         onSearch = onSearch,
         onNavigateToHadith = onNavigateToHadith,
         onLoadHadith = { viewModel.navigateToHadith(it) },
         onUpdateFontSize = { viewModel.updateFontSize(it) },
-        onToggleBookmark = { viewModel.toggleBookmark(it) }
+        onToggleBookmark = { viewModel.toggleBookmark(it) },
+        onToggleDarkMode = {viewModel.toggleSystemTheme()},
+        onShare = { viewModel.shareHadith(it) }
     )
 }
 
@@ -101,12 +109,13 @@ fun HadithDetailScreen(
 fun HadithDetailContent(
     uiState : HadithDetailUiState,
     getHadith: (Int) -> HadithDetails?,
-    getFirstHadithIdInDoor: (Int) -> Int?,
     onSearch: () -> Unit = {},
     onNavigateToHadith: (Int) -> Unit = {},
     onLoadHadith: (Int) -> Unit = {},
     onUpdateFontSize: (Float) -> Unit = {},
-    onToggleBookmark: (Int) -> Unit = {}
+    onToggleBookmark: (Int) -> Unit = {},
+    onToggleDarkMode: () -> Unit = {},
+    onShare: (HadithDetails) -> Unit = {}
 )
 {
     // Pager state for swipe navigation
@@ -123,11 +132,9 @@ fun HadithDetailContent(
     val isBookmarked = uiState.bookmarks.any { currentHadith.hadith.id == it.id }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    var showShareDialog by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
-    val clipboard = LocalClipboard.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
+    var isToolbarVisible by remember { mutableStateOf(true) }
 
     // Track page changes
     LaunchedEffect(pagerState.currentPage) {
@@ -145,103 +152,89 @@ fun HadithDetailContent(
         drawerState = drawerState,
         drawerContent = {
             NavigationDrawer(
-                books = uiState.books,
-                doors = uiState.doors,
+                bookmarks = uiState.bookmarks,
                 hadithCount = uiState.hadithCount,
-                currentBookId = currentHadith.book.id,
-                currentDoorId = currentHadith.door.id,
-                onNavigateToDoor = { doorId ->
-                    coroutineScope.launch {
-                        getFirstHadithIdInDoor(doorId)?.let {
-                            onNavigateToHadith(it)
-                        }
-                    }
-                },
-                onClose = {
-                    coroutineScope.launch { drawerState.close() }
-                }
+                isDarkMode = uiState.isDarkMode,
+                onNavigateToHadith = onNavigateToHadith,
+                onFontSizeChange = { showFontSizeDialog = true },
+                onClose = { coroutineScope.launch { drawerState.close() } },
+                onToggleDarkMode = onToggleDarkMode
             )
         }
     ) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                TopAppBar(
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                coroutineScope.launch { drawerState.open() }
+                AnimatedVisibility(
+                    visible = isToolbarVisible,
+                    enter = slideInVertically(initialOffsetY = { -it }),
+                    exit = slideOutVertically(targetOffsetY = { -it })
+                ) {
+                    TopAppBar(
+                        navigationIcon = {
+                            IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
+                                    contentDescription = "القائمة"
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
-                                contentDescription = "القائمة"
-                            )
-                        }
-                    },
-                    title = {
-                        Column {
-                            Text(
-                                text = "الحديث ${currentHadith.hadith.id}",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = currentHadith.hadith.title,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                onToggleBookmark(currentHadith.hadith.id)
-                                coroutineScope.launch {
-                                    val message =
-                                        if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
-                                    snackbarHostState.showSnackbar(message)
+                        },
+                        title = {},
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    onToggleBookmark(currentHadith.hadith.id)
+                                    coroutineScope.launch {
+                                        val message =
+                                            if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
+                                        snackbarHostState.showSnackbar(message)
+                                    }
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_filled_24 else R.drawable.ic_bookmark_24),
+                                    contentDescription = "المفضلة",
+                                    tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_filled_24 else R.drawable.ic_bookmark_24),
-                                contentDescription = "المفضلة",
-                                tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        IconButton(onClick = { showFontSizeDialog = true }) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(R.drawable.ic_text_fields_24),
-                                contentDescription = "حجم الخط"
-                            )
-                        }
-
-                        IconButton(onClick = onSearch) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
-                                contentDescription = "البحث"
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                            IconButton(onClick = onSearch) {
+                                Icon(
+                                    imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
+                                    contentDescription = "البحث"
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
-                )
+                }
             }
         ) { paddingValues ->
+
+            val animatedPadding by animateDpAsState(
+                targetValue = if (isToolbarVisible) paddingValues.calculateTopPadding() else 0.dp,
+                label = "contentPaddingAnim"
+            )
+
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(
+                        top = animatedPadding,
+                        start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                        end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
+                        bottom = 0.dp
+                    ),
                 beyondViewportPageCount = 1 // Pre-load adjacent pages
             ) { page ->
                 // Show current hadith content or placeholder while loading
                 HadithPageContent(
                     currentHadith = getHadith(page + 1),
                     fontSize = uiState.fontSize,
-                    onShare = { showShareDialog = true }
+                    onTap = {isToolbarVisible = !isToolbarVisible},
+                    onLongTap = { onShare(currentHadith) }
                 )
             }
         }
@@ -274,66 +267,14 @@ fun HadithDetailContent(
             }
         )
     }
-
-    // Share Dialog
-    if (showShareDialog) {
-        AlertDialog(
-            onDismissRequest = { showShareDialog = false },
-            title = { Text("مشاركة الحديث") },
-            text = {
-                Column {
-                    TextButton(
-                        onClick = {
-                            val shareText = buildString {
-                                appendLine(currentHadith.hadith.title)
-                                appendLine()
-                                appendLine(currentHadith.hadith.matn.replace(Regex("<[^>]*>"), ""))
-                                appendLine()
-                                appendLine("رياض الصالحين - الحديث ${currentHadith.hadith.id}")
-                            }
-                            showShareDialog = false
-
-                            coroutineScope.launch {
-                                val clipData = ClipData.newPlainText("hadith", shareText)
-                                clipboard.setClipEntry(clipData.toClipEntry())
-                                snackbarHostState.showSnackbar("تم نسخ الحديث")
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("نسخ النص كاملاً")
-                    }
-
-                    TextButton(
-                        onClick = {
-                            val shareText = currentHadith.hadith.matn.replace(Regex("<[^>]*>"), "")
-                            showShareDialog = false
-                            coroutineScope.launch {
-                                val clipData = ClipData.newPlainText("hadith", shareText)
-                                clipboard.setClipEntry(clipData.toClipEntry())
-                                snackbarHostState.showSnackbar("تم نسخ الحديث")
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("نسخ نص الحديث فقط")
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showShareDialog = false }) {
-                    Text("إلغاء")
-                }
-            }
-        )
-    }
 }
 
 @Composable
 fun HadithPageContent(
     currentHadith: HadithDetails?,
     fontSize: Float,
-    onShare: () -> Unit
+    onTap: () -> Unit,
+    onLongTap: () -> Unit
 ) {
     if(currentHadith == null)
     {
@@ -346,97 +287,68 @@ fun HadithPageContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null, // No ripple for the background tap
+                onClick = onTap
+            )
     ) {
-        // Enhanced Navigation breadcrumb with sharp edges and long text support
+
         NavigationBreadcrumb(
             book = currentHadith.book,
             door = currentHadith.door
         )
 
-        // Hadith Text
+        // Hadith Header
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = currentHadith.hadith.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "الحديث رقم ${currentHadith.hadith.id}",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .combinedClickable(
+                    onClick = onTap,
+                    onLongClick = onLongTap
+                ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.ic_format_quote_24),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "نص الحديث",
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    IconButton(onClick = onShare) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_share_24),
-                            contentDescription = "مشاركة"
-                        )
-                    }
-                }
-
+            Column(modifier = Modifier.padding(16.dp)) {
                 HtmlText(
                     html = currentHadith.hadith.matn,
                     fontSize = fontSize.sp,
-                    lineHeight = (fontSize * 1.8f).sp
+                    lineHeight = (fontSize * 1.8f).sp,
+                    //style = MaterialTheme.typography.bodyLarge
                 )
-            }
-        }
 
-        // Sharh (Explanation)
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.ic_menu_book_24),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "الشرح",
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
 
                 HtmlText(
                     html = currentHadith.hadith.sharh,
                     fontSize = (fontSize - 2).sp,
-                    lineHeight = (fontSize * 1.6f).sp
+                    lineHeight = (fontSize * 1.6f).sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
