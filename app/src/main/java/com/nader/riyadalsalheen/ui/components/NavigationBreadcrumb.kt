@@ -33,8 +33,7 @@ fun NavigationBreadcrumb(
     // Use FlowRow for a responsive layout that wraps content if needed.
     FlowRow(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp), // A bit less padding as chips have their own.
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         itemVerticalAlignment = Alignment.CenterVertically
     ) {

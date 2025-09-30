@@ -1,9 +1,12 @@
 package com.nader.riyadalsalheen.ui.screens
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -47,6 +50,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +62,7 @@ import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
 import com.nader.riyadalsalheen.model.Hadith
 import com.nader.riyadalsalheen.model.HadithDetails
+import com.nader.riyadalsalheen.ui.components.HideSystemBars
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.NavigationBreadcrumb
@@ -75,6 +80,25 @@ data class HadithDetailUiState(
     val bookmarks: List<Hadith> = emptyList(),
     val isDarkMode: Boolean
 )
+
+fun shareHadith(context: Context, hadithDetails: HadithDetails) {
+    val shareText = buildString {
+        appendLine("📖 ${hadithDetails.hadith.title}")
+        appendLine()
+        appendLine(hadithDetails.hadith.matn.replace(Regex("<[^>]*>"), "")) // Clean HTML tags for sharing
+        appendLine()
+        appendLine("Source: Riyad al Saleheen - Hadith #${hadithDetails.hadith.id}")
+    }
+
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, hadithDetails.hadith.title)
+        putExtra(Intent.EXTRA_TEXT, shareText)
+    }
+
+    // Use the Android Sharesheet
+    context.startActivity(Intent.createChooser(intent, "Share Hadith"))
+}
 
 @Composable
 fun HadithDetailScreen(
@@ -99,8 +123,7 @@ fun HadithDetailScreen(
         onLoadHadith = { viewModel.navigateToHadith(it) },
         onUpdateFontSize = { viewModel.updateFontSize(it) },
         onToggleBookmark = { viewModel.toggleBookmark(it) },
-        onToggleDarkMode = {viewModel.toggleSystemTheme()},
-        onShare = { viewModel.shareHadith(it) }
+        onToggleDarkMode = {viewModel.toggleSystemTheme()}
     )
 }
 
@@ -114,27 +137,30 @@ fun HadithDetailContent(
     onLoadHadith: (Int) -> Unit = {},
     onUpdateFontSize: (Float) -> Unit = {},
     onToggleBookmark: (Int) -> Unit = {},
-    onToggleDarkMode: () -> Unit = {},
-    onShare: (HadithDetails) -> Unit = {}
-)
-{
+    onToggleDarkMode: () -> Unit = {}
+) {
     // Pager state for swipe navigation
     val pagerState = rememberPagerState(
         initialPage = uiState.initHadithID - 1,
         pageCount = { uiState.hadithCount }
     )
     val currentHadith = getHadith(pagerState.currentPage + 1)
-    if(currentHadith == null)
-    {
+    if (currentHadith == null) {
         return LoadingContent()
     }
+    val context = LocalContext.current
 
     val isBookmarked = uiState.bookmarks.any { currentHadith.hadith.id == it.id }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showFontSizeDialog by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    var isToolbarVisible by remember { mutableStateOf(true) }
+
+    // FullScreen
+    var isFullScreen by remember { mutableStateOf(false) }
+    if (isFullScreen) {
+        HideSystemBars()
+    }
 
     // Track page changes
     LaunchedEffect(pagerState.currentPage) {
@@ -166,7 +192,7 @@ fun HadithDetailContent(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 AnimatedVisibility(
-                    visible = isToolbarVisible,
+                    visible = !isFullScreen,
                     enter = slideInVertically(initialOffsetY = { -it }),
                     exit = slideOutVertically(targetOffsetY = { -it })
                 ) {
@@ -175,7 +201,8 @@ fun HadithDetailContent(
                             IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
                                 Icon(
                                     imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
-                                    contentDescription = "القائمة"
+                                    contentDescription = "القائمة",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         },
@@ -200,7 +227,8 @@ fun HadithDetailContent(
                             IconButton(onClick = onSearch) {
                                 Icon(
                                     imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
-                                    contentDescription = "البحث"
+                                    contentDescription = "البحث",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         },
@@ -213,7 +241,7 @@ fun HadithDetailContent(
         ) { paddingValues ->
 
             val animatedPadding by animateDpAsState(
-                targetValue = if (isToolbarVisible) paddingValues.calculateTopPadding() else 0.dp,
+                targetValue = if (isFullScreen) 0.dp else paddingValues.calculateTopPadding(),
                 label = "contentPaddingAnim"
             )
 
@@ -233,8 +261,8 @@ fun HadithDetailContent(
                 HadithPageContent(
                     currentHadith = getHadith(page + 1),
                     fontSize = uiState.fontSize,
-                    onTap = {isToolbarVisible = !isToolbarVisible},
-                    onLongTap = { onShare(currentHadith) }
+                    onTap = { isFullScreen = !isFullScreen },
+                    onLongTap = { shareHadith(context, currentHadith) }
                 )
             }
         }
@@ -286,6 +314,7 @@ fun HadithPageContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(horizontal = 16.dp)
             .verticalScroll(scrollState)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -293,17 +322,17 @@ fun HadithPageContent(
                 onClick = onTap
             )
     ) {
-
         NavigationBreadcrumb(
             book = currentHadith.book,
             door = currentHadith.door
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         // Hadith Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(
                 text = currentHadith.hadith.title,
@@ -318,15 +347,18 @@ fun HadithPageContent(
             )
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .combinedClickable(
                     onClick = onTap,
                     onLongClick = onLongTap
                 ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .3f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border= BorderStroke(width = 2.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 HtmlText(
@@ -349,6 +381,7 @@ fun HadithPageContent(
                 )
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

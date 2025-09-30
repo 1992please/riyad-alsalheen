@@ -1,11 +1,9 @@
 package com.nader.riyadalsalheen.ui.viewmodel
 
 import android.app.Application
-import android.content.Intent
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
 import com.nader.riyadalsalheen.data.AppPreferences
 import com.nader.riyadalsalheen.data.repository.RiyadSalheenRepository
@@ -142,28 +140,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateFontSize(size: Float) {
         viewModelScope.launch {
-            fontSize.floatValue = size
+            fontSize.floatValue = size.coerceIn(14f, 30f)
             preferences.saveFontSize(fontSize.floatValue)
         }
-    }
-
-    fun shareHadith(hadithDetails: HadithDetails) {
-        val shareText = buildString {
-            appendLine("📖 ${hadithDetails.hadith.title}")
-            appendLine()
-            appendLine(hadithDetails.hadith.matn.replace(Regex("<[^>]*>"), "")) // Clean HTML tags for sharing
-            appendLine()
-            appendLine("Source: Riyad al Saleheen - Hadith #${hadithDetails.hadith.id}")
-        }
-
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, hadithDetails.hadith.title)
-            putExtra(Intent.EXTRA_TEXT, shareText)
-        }
-
-        // Use the Android Sharesheet
-        application.startActivity(Intent.createChooser(intent, "Share Hadith"))
     }
 
     override fun onCleared() {

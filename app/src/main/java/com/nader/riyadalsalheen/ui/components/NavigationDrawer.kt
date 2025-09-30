@@ -77,8 +77,7 @@ fun NavigationDrawer(
                     )
                 }
 
-                Column()
-                {
+                Column {
                     IconButton(onClick = onToggleDarkMode) {
                         Icon(
                             imageVector = ImageVector.vectorResource(if (isDarkMode) R.drawable.ic_dark_mode_24 else R.drawable.ic_light_mode_24),
