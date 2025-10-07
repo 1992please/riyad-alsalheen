@@ -67,6 +67,7 @@ import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.NavigationBreadcrumb
 import com.nader.riyadalsalheen.ui.components.NavigationDrawer
+import com.nader.riyadalsalheen.ui.theme.LocalDarkTheme
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -77,8 +78,7 @@ data class HadithDetailUiState(
     val initHadithID: Int = 0,
     val hadithCount: Int = 0,
     val fontSize: Float = 18f,
-    val bookmarks: List<Hadith> = emptyList(),
-    val isDarkMode: Boolean
+    val bookmarks: List<Hadith> = emptyList()
 )
 
 fun shareHadith(context: Context, hadithDetails: HadithDetails) {
@@ -112,8 +112,7 @@ fun HadithDetailScreen(
         initHadithID = viewModel.currentHadithId,
         hadithCount = viewModel.hadithCount,
         fontSize = viewModel.fontSize.floatValue,
-        bookmarks = viewModel.bookmarks.value,
-        isDarkMode = viewModel.isDarkMode
+        bookmarks = viewModel.bookmarks.value
     )
     HadithDetailContent(
         uiState = uiState,
@@ -180,7 +179,6 @@ fun HadithDetailContent(
             NavigationDrawer(
                 bookmarks = uiState.bookmarks,
                 hadithCount = uiState.hadithCount,
-                isDarkMode = uiState.isDarkMode,
                 onNavigateToHadith = onNavigateToHadith,
                 onFontSizeChange = { showFontSizeDialog = true },
                 onClose = { coroutineScope.launch { drawerState.close() } },
@@ -357,7 +355,6 @@ fun HadithPageContent(
                     onLongClick = onLongTap
                 ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .3f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             border= BorderStroke(width = 2.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {

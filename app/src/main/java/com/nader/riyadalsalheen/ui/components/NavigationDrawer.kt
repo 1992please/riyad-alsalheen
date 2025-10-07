@@ -31,12 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
 import com.nader.riyadalsalheen.model.Hadith
+import com.nader.riyadalsalheen.ui.theme.LocalDarkTheme
 
 @Composable
 fun NavigationDrawer(
     bookmarks: List<Hadith>,
     hadithCount: Int,
-    isDarkMode: Boolean,
     onNavigateToBookmarks: () -> Unit = {},
     onNavigateToHadith: (Int) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -45,6 +45,7 @@ fun NavigationDrawer(
     onToggleDarkMode: () -> Unit = {},
     onClose: () -> Unit = {}
 ) {
+    val isDarkMode = LocalDarkTheme.current
     ModalDrawerSheet(
         modifier = Modifier.fillMaxWidth(0.85f)
     ) {

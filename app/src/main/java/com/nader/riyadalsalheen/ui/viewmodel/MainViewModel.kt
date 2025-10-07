@@ -32,8 +32,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val fontSize = mutableFloatStateOf(18f)
     val bookmarks = mutableStateOf(emptyList<Hadith>())
 
-    var isDarkMode = false
-
     // Loading states
     val isInitialDataLoaded = mutableStateOf(false)
     val isSearching = mutableStateOf(false)

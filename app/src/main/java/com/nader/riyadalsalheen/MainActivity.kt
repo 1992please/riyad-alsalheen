@@ -28,8 +28,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: MainViewModel = viewModel()
 
-            viewModel.isDarkMode = if(viewModel.systemTheme.value) isSystemInDarkTheme() else !isSystemInDarkTheme()
-            RiyadalsalheenTheme (viewModel.isDarkMode, activity = this) {
+            val isDarkMode = if(viewModel.systemTheme.value) isSystemInDarkTheme() else !isSystemInDarkTheme()
+            RiyadalsalheenTheme (isDarkMode, activity = this) {
                 if (!viewModel.isInitialDataLoaded.value) {
                     LoadingContent()
                 } else {
