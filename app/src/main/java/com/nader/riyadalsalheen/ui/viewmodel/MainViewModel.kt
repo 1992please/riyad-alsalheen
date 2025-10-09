@@ -86,7 +86,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Remove unneeded items first for efficiency
         cachedHadiths.entries.removeIf { kotlin.math.abs(it.key - currentId) > 3 }
 
-        // Use a more idiomatic way to add missing items
         (minId..maxId).forEach { idx ->
             loadHadithDetails(idx)
         }
