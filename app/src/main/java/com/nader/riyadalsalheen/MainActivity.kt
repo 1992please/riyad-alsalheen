@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nader.riyadalsalheen.ui.components.FontSizeDialog
 import com.nader.riyadalsalheen.ui.components.LoadingContent
+import com.nader.riyadalsalheen.ui.components.NavigationBottomSheet
 import com.nader.riyadalsalheen.ui.components.NavigationDrawer
 import com.nader.riyadalsalheen.ui.screens.HadithDetailScreen
 import com.nader.riyadalsalheen.ui.screens.SearchScreen
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
 fun MainActivityComposable(viewModel: MainViewModel) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var showBottomSheet by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -83,7 +85,8 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 HadithDetailScreen(
                     viewModel = viewModel,
                     onSearch = { navController.navigate("search") },
-                    onOpenDrawer = { coroutineScope.launch { drawerState.open() } }
+                    onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
+                    onOpenBottomNavSheet = {showBottomSheet = true}
                 )
             }
             composable("search") {
@@ -104,6 +107,24 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             fontSize = viewModel.fontSize.floatValue,
             onUpdateFontSize = {viewModel.updateFontSize(it)},
             onDismiss = { showFontSizeDialog = false }
+        )
+    }
+
+    if (showBottomSheet) {
+        NavigationBottomSheet(
+            books = viewModel.books,
+            doors = viewModel.doors,
+            onNavigateToDoor = { doorId ->
+                coroutineScope.launch {
+                    viewModel.getFirstHadithIdInDoor(doorId)?.let {
+                        navController.navigate("hadithDetail/$it")
+                    }
+                }
+                showBottomSheet = false
+            },
+            onDismiss = {
+                showBottomSheet = false
+            }
         )
     }
 }

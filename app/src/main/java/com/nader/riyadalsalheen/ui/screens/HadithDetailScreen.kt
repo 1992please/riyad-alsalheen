@@ -95,7 +95,8 @@ fun shareHadith(context: Context, hadithDetails: HadithDetails) {
 fun HadithDetailScreen(
     viewModel: MainViewModel,
     onSearch: () -> Unit,
-    onOpenDrawer: () -> Unit
+    onOpenDrawer: () -> Unit,
+    onOpenBottomNavSheet: () -> Unit
 ) {
     val uiState = HadithDetailUiState(
         books = viewModel.books,
@@ -110,6 +111,7 @@ fun HadithDetailScreen(
         getHadith = { viewModel.cachedHadiths[it] },
         onSearch = onSearch,
         onOpenDrawer = onOpenDrawer,
+        onOpenBottomNavSheet = onOpenBottomNavSheet,
         onLoadHadith = { viewModel.navigateToHadith(it) },
         onToggleBookmark = { viewModel.toggleBookmark(it) }
     )
@@ -123,7 +125,8 @@ fun HadithDetailContent(
     onSearch: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     onLoadHadith: (Int) -> Unit = {},
-    onToggleBookmark: (Int) -> Unit = {}
+    onToggleBookmark: (Int) -> Unit = {},
+    onOpenBottomNavSheet: () -> Unit = {}
 ) {
     // Pager state for swipe navigation
     val pagerState = rememberPagerState(
@@ -230,7 +233,8 @@ fun HadithDetailContent(
                 currentHadith = getHadith(page + 1),
                 fontSize = uiState.fontSize,
                 onTap = { isFullScreen = !isFullScreen },
-                onLongTap = { shareHadith(context, currentHadith) }
+                onLongTap = { shareHadith(context, currentHadith) },
+                onOpenBottomNavSheet = onOpenBottomNavSheet
             )
         }
     }
@@ -241,7 +245,8 @@ fun HadithPageContent(
     currentHadith: HadithDetails?,
     fontSize: Float,
     onTap: () -> Unit,
-    onLongTap: () -> Unit
+    onLongTap: () -> Unit,
+    onOpenBottomNavSheet: () -> Unit
 ) {
     if(currentHadith == null)
     {
@@ -263,7 +268,9 @@ fun HadithPageContent(
     ) {
         NavigationBreadcrumb(
             book = currentHadith.book,
-            door = currentHadith.door
+            door = currentHadith.door,
+            onBookClick = onOpenBottomNavSheet,
+            onDoorClick = onOpenBottomNavSheet
         )
 
         Spacer(modifier = Modifier.height(8.dp))
