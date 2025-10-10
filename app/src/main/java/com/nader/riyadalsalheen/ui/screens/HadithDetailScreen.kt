@@ -2,14 +2,9 @@ package com.nader.riyadalsalheen.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -37,17 +32,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
@@ -58,7 +52,6 @@ import com.nader.riyadalsalheen.model.HadithDetails
 import com.nader.riyadalsalheen.ui.components.HideSystemBars
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
-import com.nader.riyadalsalheen.ui.components.NavigationBreadcrumb
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -144,7 +137,10 @@ fun HadithDetailContent(
     val coroutineScope = rememberCoroutineScope()
 
     // FullScreen
-    var isFullScreen by remember { mutableStateOf(false) }
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
+        //snapAnimationSpec = spring(stiffness = Spring.StiffnessHigh)
+    )
+    val isFullScreen =  scrollBehavior.state.collapsedFraction != 0f
     if (isFullScreen) {
         HideSystemBars()
     }
@@ -162,66 +158,81 @@ fun HadithDetailContent(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            AnimatedVisibility(
-                visible = !isFullScreen,
-                enter = slideInVertically(initialOffsetY = { -it }),
-                exit = slideOutVertically(targetOffsetY = { -it })
-            ) {
-                TopAppBar(
-                    navigationIcon = {
-                        IconButton(onClick = onOpenDrawer) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
-                                contentDescription = "القائمة",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    title = {},
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                onToggleBookmark(currentHadith.hadith.id)
-                                coroutineScope.launch {
-                                    val message =
-                                        if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
-                                    snackbarHostState.showSnackbar(message)
-                                }
+            TopAppBar(
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
+                            contentDescription = "القائمة",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                title = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onOpenBottomNavSheet)
+                    ) {
+                        Text(
+                            text = currentHadith.door.title,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = currentHadith.book.title,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            onToggleBookmark(currentHadith.hadith.id)
+                            coroutineScope.launch {
+                                val message =
+                                    if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
+                                snackbarHostState.showSnackbar(message)
                             }
-                        ) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_filled_24 else R.drawable.ic_bookmark_24),
-                                contentDescription = "المفضلة",
-                                tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
-                        IconButton(onClick = onSearch) {
-                            Icon(
-                                imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
-                                contentDescription = "البحث",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(if (isBookmarked) R.drawable.ic_bookmark_filled_24 else R.drawable.ic_bookmark_24),
+                            contentDescription = "المفضلة",
+                            tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = onSearch) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
+                            contentDescription = "البحث",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
-            }
+            )
         }
     ) { paddingValues ->
-        val animatedPadding by animateDpAsState(
-            targetValue = if (isFullScreen) 0.dp else paddingValues.calculateTopPadding(),
-            label = "contentPaddingAnim"
-        )
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = animatedPadding,
+                    top = paddingValues.calculateTopPadding(),
                     start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
                     bottom = 0.dp
@@ -231,10 +242,9 @@ fun HadithDetailContent(
             // Show current hadith content or placeholder while loading
             HadithPageContent(
                 currentHadith = getHadith(page + 1),
+                fullScreen = isFullScreen,
                 fontSize = uiState.fontSize,
-                onTap = { isFullScreen = !isFullScreen },
-                onLongTap = { shareHadith(context, currentHadith) },
-                onOpenBottomNavSheet = onOpenBottomNavSheet
+                onLongTap = { shareHadith(context, currentHadith) }
             )
         }
     }
@@ -243,10 +253,9 @@ fun HadithDetailContent(
 @Composable
 fun HadithPageContent(
     currentHadith: HadithDetails?,
+    fullScreen: Boolean,
     fontSize: Float,
-    onTap: () -> Unit,
-    onLongTap: () -> Unit,
-    onOpenBottomNavSheet: () -> Unit
+    onLongTap: () -> Unit
 ) {
     if(currentHadith == null)
     {
@@ -260,37 +269,29 @@ fun HadithPageContent(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
             .verticalScroll(scrollState)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null, // No ripple for the background tap
-                onClick = onTap
-            )
     ) {
-        NavigationBreadcrumb(
-            book = currentHadith.book,
-            door = currentHadith.door,
-            onBookClick = onOpenBottomNavSheet,
-            onDoorClick = onOpenBottomNavSheet
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        if(fullScreen) {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         // Hadith Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
+            if(fullScreen) {
+                Text(
+                    text = "الحديث رقم ${currentHadith.hadith.id}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text(
                 text = currentHadith.hadith.title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "الحديث رقم ${currentHadith.hadith.id}",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 4.dp)
             )
+
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -299,7 +300,7 @@ fun HadithPageContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(
-                    onClick = onTap,
+                    onClick = { },
                     onLongClick = onLongTap
                 ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .3f)),

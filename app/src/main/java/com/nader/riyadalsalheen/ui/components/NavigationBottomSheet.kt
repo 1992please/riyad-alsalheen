@@ -30,7 +30,7 @@ fun NavigationBottomSheet(
     onNavigateToDoor: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedBook by remember { mutableStateOf<Book?>(null) }
 
     ModalBottomSheet(

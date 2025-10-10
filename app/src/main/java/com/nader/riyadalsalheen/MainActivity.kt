@@ -24,6 +24,7 @@ import com.nader.riyadalsalheen.ui.components.FontSizeDialog
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.NavigationBottomSheet
 import com.nader.riyadalsalheen.ui.components.NavigationDrawer
+import com.nader.riyadalsalheen.ui.screens.BookmarksScreen
 import com.nader.riyadalsalheen.ui.screens.HadithDetailScreen
 import com.nader.riyadalsalheen.ui.screens.SearchScreen
 import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
@@ -67,6 +68,7 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             NavigationDrawer(
                 bookmarks = viewModel.bookmarks.value,
                 hadithCount = viewModel.hadithCount,
+                onNavigateToBookmarks = { navController.navigate("bookmarks") },
                 onNavigateToHadith = { navController.navigate("hadithDetail/$it") },
                 onFontSizeChange = { showFontSizeDialog = true },
                 onClose = { coroutineScope.launch { drawerState.close() } },
@@ -91,6 +93,15 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             }
             composable("search") {
                 SearchScreen(
+                    viewModel = viewModel,
+                    onHadithSelected = { navController.navigate("hadithDetail/$it") },
+                    onBackPressed = {
+                        navController.navigateUp()
+                    }
+                )
+            }
+            composable("bookmarks") {
+                BookmarksScreen(
                     viewModel = viewModel,
                     onHadithSelected = { navController.navigate("hadithDetail/$it") },
                     onBackPressed = {
