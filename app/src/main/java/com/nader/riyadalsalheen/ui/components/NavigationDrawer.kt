@@ -1,6 +1,7 @@
 package com.nader.riyadalsalheen.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -28,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
 import com.nader.riyadalsalheen.model.Hadith
 import com.nader.riyadalsalheen.ui.theme.LocalDarkTheme
@@ -37,9 +37,9 @@ import com.nader.riyadalsalheen.ui.theme.LocalDarkTheme
 fun NavigationDrawer(
     bookmarks: List<Hadith>,
     hadithCount: Int,
+    versionName: String,
     onNavigateToBookmarks: () -> Unit = {},
     onNavigateToHadith: (Int) -> Unit = {},
-    onNavigateToSettings: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onFontSizeChange: () -> Unit = {},
     onToggleDarkMode: () -> Unit = {},
@@ -47,42 +47,50 @@ fun NavigationDrawer(
 ) {
     val isDarkMode = LocalDarkTheme.current
     ModalDrawerSheet(
-        modifier = Modifier.fillMaxWidth(0.85f)
+        modifier = Modifier.fillMaxWidth(0.85f),
+        drawerContainerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
         ) {
             // Header
             Row(
                 modifier = Modifier
-                    .padding(top = 16.dp, bottom = 12.dp)
-            )
-            {
+                    .padding(top = 20.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
                         text = "رياض الصالحين",
-                        fontSize = 22.sp,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "$hadithCount حديث",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
 
-                Column {
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
                     IconButton(onClick = onToggleDarkMode) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(if (isDarkMode) R.drawable.ic_dark_mode_24 else R.drawable.ic_light_mode_24),
-                            contentDescription = if (isDarkMode) "Switch to System Mode" else "Switch to Dark Mode"
+                            imageVector = ImageVector.vectorResource(
+                                if (isDarkMode) R.drawable.ic_dark_mode_24
+                                else R.drawable.ic_light_mode_24
+                            ),
+                            contentDescription = if (isDarkMode) "Switch to Light Mode"
+                            else "Switch to Dark Mode",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -92,7 +100,8 @@ fun NavigationDrawer(
                     }) {
                         Icon(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_text_fields_24),
-                            contentDescription = "حجم الخط"
+                            contentDescription = "حجم الخط",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -100,100 +109,106 @@ fun NavigationDrawer(
 
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentPadding = PaddingValues(8.dp)
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = 8.dp)
             ) {
                 // Divider
                 item {
                     HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
                 }
 
-                // Bookmarks Section
+                // Bookmarks Section Header
                 item {
                     DrawerMenuItem(
                         text = "العلامات المرجعية",
-                        icon = ImageVector.vectorResource(R.drawable.ic_bookmark_24)
+                        icon = ImageVector.vectorResource(R.drawable.ic_bookmark_24),
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
-
-                // Recent Bookmarks
-                items(bookmarks.take(3)) { bookmark ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 0.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
-                            .clickable {
-                                onNavigateToHadith(bookmark.id)
-                                onClose()
-                            },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                // Show message if no bookmarks
+                if (bookmarks.isEmpty()) {
+                    item {
                         Text(
-                            text = "${bookmark.id}",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.End,
-                            modifier = Modifier.width(40.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = bookmark.title,
-                            style = MaterialTheme.typography.labelLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = "لا توجد علامات مرجعية",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 48.dp, top = 8.dp, bottom = 8.dp)
                         )
                     }
                 }
+                // View All Bookmarks (only show if there are bookmarks)
+                else {
+                    // Recent Bookmarks
+                    items(bookmarks.take(3)) { bookmark ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 0.dp, end = 12.dp, top = 8.dp, bottom = 8.dp)
+                                .clickable {
+                                    onNavigateToHadith(bookmark.id)
+                                    onClose()
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${bookmark.id}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.End,
+                                modifier = Modifier.width(40.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = bookmark.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
 
-                // View All Bookmarks
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp) // Ensure minimum touch target size (>44dp) [1]
-                            .clickable {
-                                onNavigateToBookmarks()
-                                onClose()
-                            }
-                            .padding(start = 24.dp, end = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_forward_24),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp), // Slightly smaller icon for a sub-item
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f) // Duller tint
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "عرض جميع العلامات المرجعية",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .clickable {
+                                    onNavigateToBookmarks()
+                                    onClose()
+                                }
+                                .padding(start = 24.dp, end = 12.dp, top = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_forward_24),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "عرض جميع العلامات المرجعية",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
 
                 // Divider
                 item {
                     HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-
-                // Settings
-                item {
-                    DrawerMenuItem(
-                        text = "الإعدادات",
-                        icon = ImageVector.vectorResource(R.drawable.ic_settings_24),
-                        modifier = Modifier.clickable{
-                            onNavigateToSettings()
-                            onClose()
-                        }
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
                 }
 
@@ -202,23 +217,43 @@ fun NavigationDrawer(
                     DrawerMenuItem(
                         text = "حول التطبيق",
                         icon = ImageVector.vectorResource(R.drawable.ic_info_24),
-                        modifier = Modifier.clickable{
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable {
                             onNavigateToAbout()
                             onClose()
                         }
                     )
                 }
             }
+
+            // Footer with version
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
+            Text(
+                text = "الإصدار $versionName",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
 
 
+// Replace DrawerMenuItem function:
 @Composable
 fun DrawerMenuItem(
     text: String,
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fontWeight: FontWeight = FontWeight.SemiBold
 ) {
     Row(
         modifier = modifier
@@ -230,13 +265,14 @@ fun DrawerMenuItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = fontWeight,
             color = MaterialTheme.colorScheme.onSurface
         )
     }

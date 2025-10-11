@@ -11,20 +11,20 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nader.riyadalsalheen.ui.components.FontSizeDialog
 import com.nader.riyadalsalheen.ui.components.LoadingContent
-import com.nader.riyadalsalheen.ui.components.NavigationBottomSheet
 import com.nader.riyadalsalheen.ui.components.NavigationDrawer
+import com.nader.riyadalsalheen.ui.screens.AboutScreen
 import com.nader.riyadalsalheen.ui.screens.BookmarksScreen
 import com.nader.riyadalsalheen.ui.screens.HadithDetailScreen
 import com.nader.riyadalsalheen.ui.screens.SearchScreen
@@ -68,6 +68,8 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             NavigationDrawer(
                 bookmarks = viewModel.bookmarks.value,
                 hadithCount = viewModel.hadithCount,
+                versionName = viewModel.packageInfo.versionName ?: "1.0.0",
+                onNavigateToAbout = { navController.navigate("about") },
                 onNavigateToBookmarks = { navController.navigate("bookmarks") },
                 onNavigateToHadith = { navController.navigate("hadithDetail/$it") },
                 onFontSizeChange = { showFontSizeDialog = true },
@@ -83,7 +85,9 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             composable("hadithDetail/{hadithId}") { backStackEntry ->
                 val hadithId =
                     backStackEntry.arguments?.getString("hadithId")?.toIntOrNull() ?: 0
-                viewModel.navigateToHadith(hadithId)
+                LaunchedEffect(hadithId) {
+                    viewModel.navigateToHadith(hadithId)
+                }
                 HadithDetailScreen(
                     viewModel = viewModel,
                     onLoadDoor = { doorId ->
@@ -110,6 +114,13 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 BookmarksScreen(
                     viewModel = viewModel,
                     onHadithSelected = { navController.navigate("hadithDetail/$it") },
+                    onBackPressed = {
+                        navController.navigateUp()
+                    }
+                )
+            }
+            composable("about") {
+                AboutScreen(
                     onBackPressed = {
                         navController.navigateUp()
                     }

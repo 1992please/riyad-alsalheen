@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,6 +33,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -59,27 +63,54 @@ fun NavigationBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var expandedBookId by remember { mutableIntStateOf(currentBookId) }
 
+    val lazyListState = rememberLazyListState()
+    LaunchedEffect(Unit) {
+        lazyListState.animateScrollToItem(index = currentBookId - 1)
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.8f)
         ) {
-            items(books) { book ->
-                NavigationBookItem(
-                    book = book,
-                    doors = doors.filter { it.bookId == book.id },
-                    isExpanded = expandedBookId == book.id,
-                    isCurrentBook = currentBookId == book.id,
-                    currentDoorId = currentDoorId,
-                    onExpandToggle = {
-                        expandedBookId = if (expandedBookId == book.id) -1 else book.id
-                    },
-                    onDoorClick = onNavigateToDoor
-                )
+            // Sheet Header
+            Text(
+                text = "التنقل بين الأبواب",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(books) { book ->
+                    NavigationBookItem(
+                        book = book,
+                        doors = doors.filter { it.bookId == book.id },
+                        isExpanded = expandedBookId == book.id,
+                        isCurrentBook = currentBookId == book.id,
+                        currentDoorId = currentDoorId,
+                        onExpandToggle = {
+                            expandedBookId = if (expandedBookId == book.id) -1 else book.id
+                        },
+                        onDoorClick = onNavigateToDoor
+                    )
+                }
             }
         }
     }
@@ -99,10 +130,11 @@ fun NavigationBookItem(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isCurrentBook)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(12.dp),
+        border = if (isCurrentBook) BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) else null
     ) {
         Column {
             // Book Header
@@ -110,7 +142,7 @@ fun NavigationBookItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onExpandToggle() }
-                    .padding(20.dp),
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -119,16 +151,16 @@ fun NavigationBookItem(
                     modifier = Modifier.size(24.dp),
                     tint = if (isCurrentBook)
                         MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = book.title,
-                        fontSize = 16.sp,
-                        fontWeight = if (isCurrentBook) FontWeight.SemiBold else FontWeight.Medium,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (isCurrentBook) FontWeight.Bold else FontWeight.SemiBold,
                         color = if (isCurrentBook)
                             MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface
@@ -136,8 +168,9 @@ fun NavigationBookItem(
 
                     Text(
                         text = "باب ${doors.size}",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -151,7 +184,7 @@ fun NavigationBookItem(
                     ),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -163,7 +196,7 @@ fun NavigationBookItem(
             ) {
                 Column {
                     HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                     )
 
                     doors.forEach { door ->
@@ -191,19 +224,19 @@ fun NavigationDoorItem(
             .clickable { onClick() }
             .background(
                 if (isSelected)
-                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                 else Color.Transparent
             )
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = door.title,
-            fontSize = 15.sp,
-            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
             color = if (isSelected)
-                MaterialTheme.colorScheme.onSecondaryContainer
-            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
 
@@ -211,8 +244,8 @@ fun NavigationDoorItem(
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_check_circle_24),
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.secondary
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }

@@ -336,7 +336,7 @@ fun SearchResultItem(
                     Text(
                         text = hadith.title,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.End,
                         maxLines = 1,

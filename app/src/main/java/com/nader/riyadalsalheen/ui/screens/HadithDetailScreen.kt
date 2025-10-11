@@ -276,8 +276,7 @@ fun HadithPageContent(
     fontSize: Float,
     onLongTap: () -> Unit
 ) {
-    if(currentHadith == null)
-    {
+    if(currentHadith == null) {
         return LoadingContent()
     }
 
@@ -290,22 +289,15 @@ fun HadithPageContent(
             .verticalScroll(scrollState)
     ) {
         if(fullScreen) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
         // Hadith Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            if(fullScreen) {
-                Text(
-                    text = "الحديث رقم ${currentHadith.hadith.id}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
             Text(
-                text = currentHadith.hadith.title,
+                text = "${currentHadith.hadith.id}-${currentHadith.hadith.title}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 4.dp)
@@ -330,7 +322,7 @@ fun HadithPageContent(
                     html = currentHadith.hadith.matn,
                     fontSize = fontSize.sp,
                     lineHeight = (fontSize * 1.8f).sp,
-                    //style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

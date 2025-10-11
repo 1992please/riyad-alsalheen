@@ -156,7 +156,7 @@ fun BookmarksScreenContent(
                     Text(
                         text = "لا توجد أحاديث مفضلة",
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -224,12 +224,12 @@ fun BookmarkItem(
                         text = "الحديث ${hadith.id}",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = hadith.title,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.End,
                         maxLines = 1,
