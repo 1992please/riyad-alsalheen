@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,7 +59,6 @@ class MainActivity : ComponentActivity() {
 fun MainActivityComposable(viewModel: MainViewModel) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    var showBottomSheet by remember { mutableStateOf(false) }
     var showFontSizeDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -86,9 +86,15 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 viewModel.navigateToHadith(hadithId)
                 HadithDetailScreen(
                     viewModel = viewModel,
+                    onLoadDoor = { doorId ->
+                        coroutineScope.launch {
+                            viewModel.getFirstHadithIdInDoor(doorId)?.let {
+                                navController.navigate("hadithDetail/$it")
+                            }
+                        }
+                    },
                     onSearch = { navController.navigate("search") },
-                    onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
-                    onOpenBottomNavSheet = {showBottomSheet = true}
+                    onOpenDrawer = { coroutineScope.launch { drawerState.open() } }
                 )
             }
             composable("search") {
@@ -118,24 +124,6 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             fontSize = viewModel.fontSize.floatValue,
             onUpdateFontSize = {viewModel.updateFontSize(it)},
             onDismiss = { showFontSizeDialog = false }
-        )
-    }
-
-    if (showBottomSheet) {
-        NavigationBottomSheet(
-            books = viewModel.books,
-            doors = viewModel.doors,
-            onNavigateToDoor = { doorId ->
-                coroutineScope.launch {
-                    viewModel.getFirstHadithIdInDoor(doorId)?.let {
-                        navController.navigate("hadithDetail/$it")
-                    }
-                }
-                showBottomSheet = false
-            },
-            onDismiss = {
-                showBottomSheet = false
-            }
         )
     }
 }

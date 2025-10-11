@@ -32,8 +32,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -52,6 +55,7 @@ import com.nader.riyadalsalheen.model.HadithDetails
 import com.nader.riyadalsalheen.ui.components.HideSystemBars
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
+import com.nader.riyadalsalheen.ui.components.NavigationBottomSheet
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -87,9 +91,9 @@ fun shareHadith(context: Context, hadithDetails: HadithDetails) {
 @Composable
 fun HadithDetailScreen(
     viewModel: MainViewModel,
+    onLoadDoor: (Int) -> Unit,
     onSearch: () -> Unit,
-    onOpenDrawer: () -> Unit,
-    onOpenBottomNavSheet: () -> Unit
+    onOpenDrawer: () -> Unit
 ) {
     val uiState = HadithDetailUiState(
         books = viewModel.books,
@@ -104,8 +108,8 @@ fun HadithDetailScreen(
         getHadith = { viewModel.cachedHadiths[it] },
         onSearch = onSearch,
         onOpenDrawer = onOpenDrawer,
-        onOpenBottomNavSheet = onOpenBottomNavSheet,
         onLoadHadith = { viewModel.navigateToHadith(it) },
+        onLoadDoor = onLoadDoor,
         onToggleBookmark = { viewModel.toggleBookmark(it) }
     )
 }
@@ -118,8 +122,8 @@ fun HadithDetailContent(
     onSearch: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
     onLoadHadith: (Int) -> Unit = {},
-    onToggleBookmark: (Int) -> Unit = {},
-    onOpenBottomNavSheet: () -> Unit = {}
+    onLoadDoor: (Int) -> Unit = {},
+    onToggleBookmark: (Int) -> Unit = {}
 ) {
     // Pager state for swipe navigation
     val pagerState = rememberPagerState(
@@ -133,13 +137,12 @@ fun HadithDetailContent(
     val context = LocalContext.current
 
     val isBookmarked = uiState.bookmarks.any { currentHadith.hadith.id == it.id }
+    var showBottomSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
     // FullScreen
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
-        //snapAnimationSpec = spring(stiffness = Spring.StiffnessHigh)
-    )
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val isFullScreen =  scrollBehavior.state.collapsedFraction != 0f
     if (isFullScreen) {
         HideSystemBars()
@@ -176,7 +179,7 @@ fun HadithDetailContent(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(onClick = onOpenBottomNavSheet)
+                            .clickable(onClick = { showBottomSheet = true })
                     ) {
                         Text(
                             text = currentHadith.door.title,
@@ -247,6 +250,22 @@ fun HadithDetailContent(
                 onLongTap = { shareHadith(context, currentHadith) }
             )
         }
+    }
+
+    if (showBottomSheet) {
+        NavigationBottomSheet(
+            books = uiState.books,
+            doors = uiState.doors,
+            currentBookId = currentHadith.book.id,
+            currentDoorId = currentHadith.door.id,
+            onNavigateToDoor = { doorId ->
+                onLoadDoor(doorId)
+                showBottomSheet = false
+            },
+            onDismiss = {
+                showBottomSheet = false
+            }
+        )
     }
 }
 
