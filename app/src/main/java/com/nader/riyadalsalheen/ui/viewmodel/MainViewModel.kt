@@ -1,6 +1,7 @@
 package com.nader.riyadalsalheen.ui.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
@@ -36,7 +37,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val isInitialDataLoaded = mutableStateOf(false)
     val isSearching = mutableStateOf(false)
 
-
     init {
         viewModelScope.launch {
             books = repository.getAllBooks()
@@ -45,10 +45,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             fontSize.floatValue = preferences.fontSize.first()
             systemTheme.value = preferences.systemTheme.first()
-            bookmarks.value = preferences.bookmarks
-                .first()
-                .mapNotNull { it.toIntOrNull() }
-                .let { repository.getHadithsByIds(it) }
+            updateBookmarks()
+
             currentHadithId = preferences.readingProgress.first()
             updateCachedHadiths()
 
@@ -75,6 +73,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             cachedHadiths[hadithId] = newHadith
             return newHadith
         }
+        Log.e("Riad", "Hadith $hadithId doesn't exist in database")
         return null
     }
 
@@ -93,9 +92,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun navigateToHadith(hadithId: Int) {
         if(currentHadithId != hadithId) {
+            Log.d("Nader", "navigateToHadith: $hadithId")
             currentHadithId = hadithId
+            updateCachedHadiths()
             viewModelScope.launch {
-                updateCachedHadiths()
                 preferences.saveReadingProgress(hadithId)
             }
         }
@@ -118,13 +118,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private suspend fun updateBookmarks() {
+        val initialBookmarks = preferences.bookmarks.first()
+        val bookmarkIds = initialBookmarks.mapNotNull { it.toIntOrNull() }
+        bookmarks.value = repository.getHadithsByIds(bookmarkIds)
+            .sortedBy { hadith -> bookmarkIds.indexOf(hadith.id) }
+    }
+
     fun toggleBookmark(hadithId: Int) {
         viewModelScope.launch {
             preferences.toggleBookmark(hadithId)
-
-            val initialBookmarks = preferences.bookmarks.first()
-            val bookmarkIds = initialBookmarks.mapNotNull { it.toIntOrNull() }
-            bookmarks.value = repository.getHadithsByIds(bookmarkIds)
+            updateBookmarks()
         }
     }
 

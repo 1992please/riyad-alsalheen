@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -18,7 +19,7 @@ class AppPreferences(private val context: Context) {
     companion object {
         val SYSTEM_THEME = booleanPreferencesKey("SYSTEM_THEME")
         val FONT_SIZE = floatPreferencesKey("font_size")
-        val BOOKMARKS = stringSetPreferencesKey("bookmarks")
+        val BOOKMARKS = stringPreferencesKey("bookmarks")
         val READING_PROGRESS = intPreferencesKey("reading_progress")
     }
 
@@ -51,20 +52,35 @@ class AppPreferences(private val context: Context) {
 
     suspend fun toggleBookmark(hadithId: Int) {
         context.dataStore.edit { preferences ->
-            val currentBookmarks = preferences[BOOKMARKS] ?: emptySet()
-            if(currentBookmarks.contains(hadithId.toString())) {
-                preferences[BOOKMARKS] = currentBookmarks - hadithId.toString()
+            // Get as comma-separated string and convert to list
+            val bookmarksString = preferences[BOOKMARKS] ?: ""
+            val currentBookmarks = if (bookmarksString.isEmpty()) {
+                emptyList()
+            } else {
+                bookmarksString.split(",")
             }
-            else {
-                preferences[BOOKMARKS] = currentBookmarks + hadithId.toString()
+
+            if(currentBookmarks.contains(hadithId.toString())) {
+                // Remove the bookmark
+                val updated = currentBookmarks - hadithId.toString()
+                preferences[BOOKMARKS] = updated.joinToString(",")
+            } else {
+                // Add at the start (most recent first)
+                val updated = listOf(hadithId.toString()) + currentBookmarks
+                preferences[BOOKMARKS] = updated.joinToString(",")
             }
         }
     }
 
     // Get bookmarks
-    val bookmarks: Flow<Set<String>> = context.dataStore.data
+    val bookmarks: Flow<List<String>> = context.dataStore.data
         .map { preferences ->
-            preferences[BOOKMARKS] ?: emptySet()
+            val bookmarksString = preferences[BOOKMARKS] ?: ""
+            if (bookmarksString.isEmpty()) {
+                emptyList()
+            } else {
+                bookmarksString.split(",")
+            }
         }
 
     // Save reading progress

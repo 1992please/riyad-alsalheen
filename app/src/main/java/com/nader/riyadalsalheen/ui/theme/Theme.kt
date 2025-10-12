@@ -140,7 +140,7 @@ fun RiyadalsalheenTheme(
         Surface(modifier = Modifier.fillMaxSize()) {
             MaterialTheme(
                 colorScheme = colorScheme,
-                typography = Typography,
+                typography = Typography2,
                 content = content
             )
         }

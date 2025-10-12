@@ -66,13 +66,13 @@ fun NavigationDrawer(
                 ) {
                     Text(
                         text = "رياض الصالحين",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "$hadithCount حديث",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
@@ -135,7 +135,8 @@ fun NavigationDrawer(
                     item {
                         Text(
                             text = "لا توجد علامات مرجعية",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 48.dp, top = 8.dp, bottom = 8.dp)
                         )
@@ -157,7 +158,7 @@ fun NavigationDrawer(
                         ) {
                             Text(
                                 text = "${bookmark.id}",
-                                style = MaterialTheme.typography.titleSmall,
+                                style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary,
                                 textAlign = TextAlign.End,
@@ -166,7 +167,7 @@ fun NavigationDrawer(
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = bookmark.title,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -196,8 +197,8 @@ fun NavigationDrawer(
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = "عرض جميع العلامات المرجعية",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -234,7 +235,7 @@ fun NavigationDrawer(
 
             Text(
                 text = "الإصدار $versionName",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -259,7 +260,7 @@ fun DrawerMenuItem(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .padding(vertical = 12.dp),
+            .padding(top = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(

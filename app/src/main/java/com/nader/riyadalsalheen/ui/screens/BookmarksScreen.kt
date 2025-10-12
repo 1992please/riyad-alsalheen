@@ -73,14 +73,21 @@ fun BookmarksScreenContent(
     Scaffold(
         topBar = {
             TopAppBar(
+                expandedHeight = 80.dp,
                 title = {
                     Column {
-                        Text("المفضلة")
+                        Text(
+                            text = "حول التطبيق",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
                         if (bookmarks.isNotEmpty()) {
                             Text(
                                 text = "${bookmarks.size} حديث",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -177,7 +184,7 @@ fun BookmarksScreenContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(
-                    items = bookmarks.sortedBy { it.id },
+                    items = bookmarks,
                     key = { it.id }
                 ) { hadith ->
                     BookmarkItem(

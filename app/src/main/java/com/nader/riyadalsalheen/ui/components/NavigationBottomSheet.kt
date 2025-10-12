@@ -130,11 +130,12 @@ fun NavigationBookItem(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isCurrentBook)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceBright
         ),
         shape = RoundedCornerShape(12.dp),
-        border = if (isCurrentBook) BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant) else null
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isCurrentBook) 0.dp else 2.dp
+        )
     ) {
         Column {
             // Book Header
@@ -167,9 +168,9 @@ fun NavigationBookItem(
                     )
 
                     Text(
-                        text = "باب ${doors.size}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Normal,
+                        text = "${doors.size} باب",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp)
                     )
@@ -232,8 +233,8 @@ fun NavigationDoorItem(
     ) {
         Text(
             text = door.title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
             color = if (isSelected)
                 MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurface,

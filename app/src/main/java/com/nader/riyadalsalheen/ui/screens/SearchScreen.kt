@@ -58,13 +58,11 @@ fun SearchScreen(
     onHadithSelected: (Int) -> Unit,
     onBackPressed: () -> Unit
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+
     SearchScreenContent(
         searchResults = viewModel.searchResults.value,
-        searchQuery = searchQuery,
         isSearching = viewModel.isSearching.value,
         onSearch = { query ->
-            searchQuery = query
             viewModel.searchHadiths(query)
         },
         onHadithSelected = onHadithSelected,
@@ -76,12 +74,12 @@ fun SearchScreen(
 @Composable
 fun SearchScreenContent(
     searchResults: List<Hadith> = emptyList(),
-    searchQuery: String = "",
     isSearching: Boolean = false,
     onSearch: (String) -> Unit = {},
     onHadithSelected: (Int) -> Unit = {},
     onBackPressed: () -> Unit = {}
 ) {
+    var searchQuery by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -97,6 +95,7 @@ fun SearchScreenContent(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { query ->
+                            searchQuery = query
                             onSearch(if (query.length >= 3) query else "")
                         },
                         modifier = Modifier
@@ -483,7 +482,6 @@ fun SearchScreenPreview() {
                     sharh = "يبين هذا الحديث أن التواضع لله تعالى سبب في رفعة الدرجات. فمن تواضع وترك الكبر والغرور، رفعه الله في الدنيا والآخرة، لأن التواضع من صفات المؤمنين الصالحين."
                 )
             ),
-            searchQuery = "السلام عليكم",
             isSearching = false,
         )
     }

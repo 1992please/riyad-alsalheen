@@ -18,6 +18,13 @@ val CairoFontFamily = FontFamily(
     Font(R.font.cairo_bold, FontWeight.Bold)
 )
 
+val NotoSansFontFamily = FontFamily(
+    Font(R.font.noto_sans_arabic, FontWeight.Normal),
+    Font(R.font.noto_sans_arabic_medium, FontWeight.Medium),
+    Font(R.font.noto_sans_arabic_medium, FontWeight.SemiBold),
+    Font(R.font.noto_sans_arabic_bold, FontWeight.Bold)
+)
+
 // Default Material 3 typography values
 val baseline = Typography()
 
@@ -40,19 +47,19 @@ val Typography = Typography(
 )
 
 val Typography2 = Typography(
-    displayLarge = baseline.displayLarge.copy(fontFamily = AmiriFontFamily),
-    displayMedium = baseline.displayMedium.copy(fontFamily = AmiriFontFamily),
-    displaySmall = baseline.displaySmall.copy(fontFamily = AmiriFontFamily),
-    headlineLarge = baseline.headlineLarge.copy(fontFamily = AmiriFontFamily),
-    headlineMedium = baseline.headlineMedium.copy(fontFamily = AmiriFontFamily),
-    headlineSmall = baseline.headlineSmall.copy(fontFamily = AmiriFontFamily),
-    titleLarge = baseline.titleLarge.copy(fontFamily = AmiriFontFamily),
-    titleMedium = baseline.titleMedium.copy(fontFamily = AmiriFontFamily),
-    titleSmall = baseline.titleSmall.copy(fontFamily = AmiriFontFamily),
-    bodyLarge = baseline.bodyLarge.copy(fontFamily = AmiriFontFamily),
-    bodyMedium = baseline.bodyMedium.copy(fontFamily = AmiriFontFamily),
-    bodySmall = baseline.bodySmall.copy(fontFamily = AmiriFontFamily),
-    labelLarge = baseline.labelLarge.copy(fontFamily = AmiriFontFamily),
-    labelMedium = baseline.labelMedium.copy(fontFamily = AmiriFontFamily),
-    labelSmall = baseline.labelSmall.copy(fontFamily = AmiriFontFamily),
+    displayLarge = baseline.displayLarge.copy(fontFamily = NotoSansFontFamily),
+    displayMedium = baseline.displayMedium.copy(fontFamily = NotoSansFontFamily),
+    displaySmall = baseline.displaySmall.copy(fontFamily = NotoSansFontFamily),
+    headlineLarge = baseline.headlineLarge.copy(fontFamily = NotoSansFontFamily),
+    headlineMedium = baseline.headlineMedium.copy(fontFamily = NotoSansFontFamily),
+    headlineSmall = baseline.headlineSmall.copy(fontFamily = NotoSansFontFamily),
+    titleLarge = baseline.titleLarge.copy(fontFamily = NotoSansFontFamily),
+    titleMedium = baseline.titleMedium.copy(fontFamily = NotoSansFontFamily),
+    titleSmall = baseline.titleSmall.copy(fontFamily = NotoSansFontFamily),
+    bodyLarge = baseline.bodyLarge.copy(fontFamily = NotoSansFontFamily),
+    bodyMedium = baseline.bodyMedium.copy(fontFamily = NotoSansFontFamily),
+    bodySmall = baseline.bodySmall.copy(fontFamily = NotoSansFontFamily),
+    labelLarge = baseline.labelLarge.copy(fontFamily = NotoSansFontFamily),
+    labelMedium = baseline.labelMedium.copy(fontFamily = NotoSansFontFamily),
+    labelSmall = baseline.labelSmall.copy(fontFamily = NotoSansFontFamily),
 )

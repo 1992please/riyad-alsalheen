@@ -11,7 +11,6 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,7 +70,10 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 versionName = viewModel.packageInfo.versionName ?: "1.0.0",
                 onNavigateToAbout = { navController.navigate("about") },
                 onNavigateToBookmarks = { navController.navigate("bookmarks") },
-                onNavigateToHadith = { navController.navigate("hadithDetail/$it") },
+                onNavigateToHadith = {
+                    viewModel.navigateToHadith(it)
+                    navController.navigate("hadithDetail/$it")
+                },
                 onFontSizeChange = { showFontSizeDialog = true },
                 onClose = { coroutineScope.launch { drawerState.close() } },
                 onToggleDarkMode = { viewModel.toggleSystemTheme() }
@@ -85,14 +87,13 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             composable("hadithDetail/{hadithId}") { backStackEntry ->
                 val hadithId =
                     backStackEntry.arguments?.getString("hadithId")?.toIntOrNull() ?: 0
-                LaunchedEffect(hadithId) {
-                    viewModel.navigateToHadith(hadithId)
-                }
+
                 HadithDetailScreen(
                     viewModel = viewModel,
                     onLoadDoor = { doorId ->
                         coroutineScope.launch {
                             viewModel.getFirstHadithIdInDoor(doorId)?.let {
+                                viewModel.navigateToHadith(it)
                                 navController.navigate("hadithDetail/$it")
                             }
                         }
@@ -104,7 +105,10 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             composable("search") {
                 SearchScreen(
                     viewModel = viewModel,
-                    onHadithSelected = { navController.navigate("hadithDetail/$it") },
+                    onHadithSelected = {
+                        viewModel.navigateToHadith(it)
+                        navController.navigate("hadithDetail/$it")
+                    },
                     onBackPressed = {
                         navController.navigateUp()
                     }
@@ -113,7 +117,10 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             composable("bookmarks") {
                 BookmarksScreen(
                     viewModel = viewModel,
-                    onHadithSelected = { navController.navigate("hadithDetail/$it") },
+                    onHadithSelected = {
+                        viewModel.navigateToHadith(it)
+                        navController.navigate("hadithDetail/$it")
+                    },
                     onBackPressed = {
                         navController.navigateUp()
                     }
@@ -138,3 +145,6 @@ fun MainActivityComposable(viewModel: MainViewModel) {
         )
     }
 }
+// TODO make unit test to go over all hadith of the database and make sure that there's no hadith missing
+// TODO add all missing hadiths with their sharh
+// TODO add hadith matn norm text to the database to ease the search
