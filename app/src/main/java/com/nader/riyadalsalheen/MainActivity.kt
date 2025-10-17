@@ -71,7 +71,6 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 onNavigateToAbout = { navController.navigate("about") },
                 onNavigateToBookmarks = { navController.navigate("bookmarks") },
                 onNavigateToHadith = {
-                    viewModel.navigateToHadith(it)
                     navController.navigate("hadithDetail/$it")
                 },
                 onFontSizeChange = { showFontSizeDialog = true },
@@ -89,11 +88,11 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                     backStackEntry.arguments?.getString("hadithId")?.toIntOrNull() ?: 0
 
                 HadithDetailScreen(
+                    initHadithID = hadithId,
                     viewModel = viewModel,
                     onLoadDoor = { doorId ->
                         coroutineScope.launch {
                             viewModel.getFirstHadithIdInDoor(doorId)?.let {
-                                viewModel.navigateToHadith(it)
                                 navController.navigate("hadithDetail/$it")
                             }
                         }
@@ -106,7 +105,6 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 SearchScreen(
                     viewModel = viewModel,
                     onHadithSelected = {
-                        viewModel.navigateToHadith(it)
                         navController.navigate("hadithDetail/$it")
                     },
                     onBackPressed = {
@@ -118,7 +116,6 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 BookmarksScreen(
                     viewModel = viewModel,
                     onHadithSelected = {
-                        viewModel.navigateToHadith(it)
                         navController.navigate("hadithDetail/$it")
                     },
                     onBackPressed = {

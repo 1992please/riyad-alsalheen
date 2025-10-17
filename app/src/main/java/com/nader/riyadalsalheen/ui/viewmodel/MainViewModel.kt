@@ -90,7 +90,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun navigateToHadith(hadithId: Int) {
+    fun loadAndGetHadith(hadithId: Int): HadithDetails? {
         if(currentHadithId != hadithId) {
             Log.d("Nader", "navigateToHadith: $hadithId")
             currentHadithId = hadithId
@@ -99,6 +99,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 preferences.saveReadingProgress(hadithId)
             }
         }
+        return cachedHadiths[hadithId]
     }
 
     fun getFirstHadithIdInDoor(doorId: Int): Int?{

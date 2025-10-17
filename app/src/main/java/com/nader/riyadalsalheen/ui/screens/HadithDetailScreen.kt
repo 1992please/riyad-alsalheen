@@ -2,7 +2,6 @@ package com.nader.riyadalsalheen.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
@@ -33,7 +32,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,6 +91,7 @@ fun shareHadith(context: Context, hadithDetails: HadithDetails) {
 
 @Composable
 fun HadithDetailScreen(
+    initHadithID: Int,
     viewModel: MainViewModel,
     onLoadDoor: (Int) -> Unit,
     onSearch: () -> Unit,
@@ -101,7 +100,7 @@ fun HadithDetailScreen(
     val uiState = HadithDetailUiState(
         books = viewModel.books,
         doors = viewModel.doors,
-        initHadithID = viewModel.currentHadithId,
+        initHadithID = initHadithID,
         hadithCount = viewModel.hadithCount,
         fontSize = viewModel.fontSize.floatValue,
         bookmarks = viewModel.bookmarks.value
@@ -112,7 +111,7 @@ fun HadithDetailScreen(
         getHadith = { viewModel.cachedHadiths[it] },
         onSearch = onSearch,
         onOpenDrawer = onOpenDrawer,
-        onLoadHadith = { viewModel.navigateToHadith(it) },
+        loadAndGetHadith = { viewModel.loadAndGetHadith(it) },
         onLoadDoor = onLoadDoor,
         onToggleBookmark = { viewModel.toggleBookmark(it) }
     )
@@ -123,9 +122,9 @@ fun HadithDetailScreen(
 fun HadithDetailContent(
     uiState : HadithDetailUiState,
     getHadith: (Int) -> HadithDetails?,
+    loadAndGetHadith: (Int) -> HadithDetails?,
     onSearch: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
-    onLoadHadith: (Int) -> Unit = {},
     onLoadDoor: (Int) -> Unit = {},
     onToggleBookmark: (Int) -> Unit = {}
 ) {
@@ -134,7 +133,10 @@ fun HadithDetailContent(
         initialPage = uiState.initHadithID - 1,
         pageCount = { uiState.hadithCount }
     )
-    val currentHadith = getHadith(pagerState.currentPage + 1)
+
+    val currentHadithId = pagerState.currentPage + 1
+    val currentHadith = loadAndGetHadith(currentHadithId)
+
     if (currentHadith == null) {
         return LoadingContent()
     }
@@ -150,18 +152,6 @@ fun HadithDetailContent(
     val isFullScreen =  scrollBehavior.state.collapsedFraction != 0f
     if (isFullScreen) {
         HideSystemBars()
-    }
-
-    // Track page changes
-    LaunchedEffect(pagerState.currentPage) {
-        onLoadHadith(pagerState.currentPage + 1)
-    }
-
-    // Update pager when hadith changes from other sources
-    LaunchedEffect(uiState.initHadithID) {
-        if (pagerState.currentPage != uiState.initHadithID - 1) {
-            pagerState.scrollToPage(uiState.initHadithID - 1)
-        }
     }
 
     Scaffold(
@@ -201,7 +191,6 @@ fun HadithDetailContent(
             // Show current hadith content or placeholder while loading
             HadithPageContent(
                 currentHadith = getHadith(page + 1),
-                fullScreen = isFullScreen,
                 fontSize = uiState.fontSize,
                 onLongTap = { shareHadith(context, currentHadith) }
             )
@@ -306,7 +295,6 @@ fun TopAppBarContent(
 @Composable
 fun HadithPageContent(
     currentHadith: HadithDetails?,
-    fullScreen: Boolean,
     fontSize: Float,
     onLongTap: () -> Unit
 ) {
