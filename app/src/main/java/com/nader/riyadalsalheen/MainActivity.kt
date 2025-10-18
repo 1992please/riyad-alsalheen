@@ -145,3 +145,4 @@ fun MainActivityComposable(viewModel: MainViewModel) {
 // TODO make unit test to go over all hadith of the database and make sure that there's no hadith missing
 // TODO add all missing hadiths with their sharh
 // TODO add hadith matn norm text to the database to ease the search
+// TODO better controls for hadith navigation controls

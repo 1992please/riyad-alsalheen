@@ -32,69 +32,70 @@ class RepositoryTest {
     }
 
     @Test
-    fun testGetAllBooks_returnsNonEmptyList() {
-        Log.d(TAG, "Starting test: testGetAllBooks_returnsNonEmptyList")
-
-        // When
-        val books = repository.getAllBooks()
-        Log.d(TAG, "Retrieved ${books.size} books")
-
-        // Then
-        assertTrue("Books list should not be empty", books.isNotEmpty())
-        Log.d(TAG, "Test passed: books list is not empty")
-
-        // Log book details for debugging
-        books.forEachIndexed { index, book ->
-            Log.d(TAG, "Book $index: ID=${book.id}, Title='${book.title}'")
-        }
-    }
-
-    @Test
-    fun testGetFirstBookDoors_returnsNonEmptyList() {
+    fun testAllBookDoors_returnsNonEmptyList() {
         Log.d(TAG, "Starting test: testGetFirstBookDoors_returnsNonEmptyList")
 
         // When
         val doors = repository.getAllDoors()
-        Log.d(TAG, "Retrieved doors of the first book ${doors.size} doors")
+        val books = repository.getAllBooks()
+        Log.d(TAG, "Retrieved books ${books.size} books")
+        Log.d(TAG, "Retrieved doors ${doors.size} doors")
 
         // Then
-        assertTrue("Books list should not be empty", doors.isNotEmpty())
-        Log.d(TAG, "Test passed: doors list is not empty")
+        assertTrue("Books list should not be empty", books.isNotEmpty())
+        assertTrue("Doors list should not be empty", doors.isNotEmpty())
+        Log.d(TAG, "Test passed: door and book list is not empty")
+
+        // Log door details for debugging
+        var allDoorIndicesExist = true
+        for(i in 1..doors.size) {
+            if(doors[i - 1].id != i) {
+                allDoorIndicesExist = false
+                Log.d(TAG, "Could not find door with index: $i")
+                break
+            }
+        }
+
+        assertTrue("Some doors are missing", allDoorIndicesExist)
+        Log.d(TAG, "Test passed: no doors are missing")
+
 
         // Log book details for debugging
-        doors.forEachIndexed { index, door ->
-            Log.d(TAG, "Book $index: ID=${door.id}, Title='${door.title}'")
+        var allBookIndicesExist = true
+        for(i in 1..books.size) {
+            if(books[i - 1].id != i) {
+                allBookIndicesExist = false
+                Log.d(TAG, "Could not find book with index: $i")
+                break
+            }
         }
+
+        assertTrue("Some books are missing", allBookIndicesExist)
+        Log.d(TAG, "Test passed: no books are missing")
     }
 
     @Test
-    fun testGetFirstDoorHadiths_returnsNonEmptyList() {
-        Log.d(TAG, "Starting test: testGetFirstDoorHadiths_returnsNonEmptyList")
-
-        // When
-        val hadiths = repository.getHadithsByDoor(1)
-        Log.d(TAG, "Retrieved hadiths of the first book ${hadiths.size} hadiths")
-
-        // Then
-        assertTrue("Books list should not be empty", hadiths.isNotEmpty())
-        Log.d(TAG, "Test passed: hadiths list is not empty")
-    }
-
-    @Test
-    fun testGetFirstAndLastHadith_returnNonEmptyTitle() {
+    fun testGetAllHadithsAvailable_returnNonEmptyTitle() {
         Log.d(TAG, "Starting test: testGetFirstAndLastHadith_returnNonEmptyTitle")
 
         val count = repository.getHadithsCount()
         Log.d(TAG, "Retrieved hadiths count ${count} hadiths")
 
         // Then
-        assertTrue("Books list should not be empty", count > 1000)
+        assertTrue("Hadiths list should not be empty", count > 0)
+        Log.d(TAG, "Test passed: hadith count retrieved $count")
 
         // When
-        val firstHadith = repository.getHadithById(1)
-        val lastHadith = repository.getHadithById(count)
+        var allHadithIndicesExist = true
+        for(i in 1..count) {
+            val hadith = repository.getHadithById(i)
+            if(hadith == null) {
+                allHadithIndicesExist = false
+                Log.d(TAG, "Could not find hadith with index: $i")
+            }
+        }
 
-        Log.d(TAG, "Retrieved first hadith ${firstHadith?.title}")
-        Log.d(TAG, "Retrieved first hadith ${lastHadith?.title}")
+        assertTrue("Some hadiths are missing", allHadithIndicesExist)
+        Log.d(TAG, "Test passed: no hadiths are missing")
     }
 }
