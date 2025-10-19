@@ -345,7 +345,7 @@ fun HadithPageContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 HtmlText(
-                    html = currentHadith.hadith.matn,
+                    htmlText = currentHadith.hadith.matn,
                     fontSize = fontSize.sp,
                     lineHeight = (fontSize * 1.8f).sp,
                     style = MaterialTheme.typography.bodyLarge
@@ -356,7 +356,7 @@ fun HadithPageContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 HtmlText(
-                    html = currentHadith.hadith.sharh,
+                    htmlText = currentHadith.hadith.sharh,
                     fontSize = (fontSize - 2).sp,
                     lineHeight = (fontSize * 1.6f).sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
