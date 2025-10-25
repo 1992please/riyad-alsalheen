@@ -3,6 +3,7 @@ package com.nader.riyadalsalheen.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -15,7 +16,7 @@ class DatabaseHelper(context: Context)
     }
 
     private val databasePath by lazy {
-        context.getDatabasePath(DATABASE_NAME).path;
+        context.getDatabasePath(DATABASE_NAME).path
     }
 
     init{
@@ -34,19 +35,30 @@ class DatabaseHelper(context: Context)
             if (!dbFile.exists() || !dbFile.canRead()  || dbFile.length() == 0L) {
                 return false
             }
-            SQLiteDatabase.openDatabase(databasePath, null, SQLiteDatabase.OPEN_READONLY).close()
+            val dp = SQLiteDatabase.openDatabase(databasePath, null, SQLiteDatabase.OPEN_READONLY)
+            if (dp.version != DATABASE_VERSION) {
+                return false
+            }
+
+            dp.close()
             return true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return false
         }
     }
 
     private fun copyDatabase(context: Context) {
+        Log.d("databaseLogs", "copyDatabase")
         val input = context.assets.open("databases/$DATABASE_NAME")
         val output = FileOutputStream(databasePath)
         input.copyTo(output)
         input.close()
         output.close()
+
+        // Now that the file is copied, open it and set its version
+        val db = SQLiteDatabase.openDatabase(databasePath, null, SQLiteDatabase.OPEN_READWRITE)
+        db.version = DATABASE_VERSION // This sets the pragma to 1
+        db.close()
     }
 
     override fun getReadableDatabase(): SQLiteDatabase {

@@ -14,84 +14,68 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import androidx.core.text.HtmlCompat
+
+enum class TextType {
+    HADITH,
+    SHARH;
+}
 
 @Composable
 fun HtmlText(
     htmlText: String,
+    textType: TextType,
     modifier: Modifier = Modifier,
     fontSize: TextUnit = 18.sp,
-    lineHeight: TextUnit = 30.sp,
+    lineHeight: TextUnit = TextUnit.Unspecified,
     color: Color = MaterialTheme.colorScheme.onSurface,
     style: TextStyle = LocalTextStyle.current
 ) {
-// Sharh P1 (Bright Red)
-    val redStyle = SpanStyle(
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFF_FF0000)
-    )
+    val styleList = when (textType) {
+        TextType.HADITH -> listOf(
+            SpanStyle(fontWeight = FontWeight.Bold),
+            SpanStyle(fontWeight = FontWeight.SemiBold),
+            SpanStyle(fontWeight = FontWeight.Medium)
+        )
 
-    // Sharh P2 (Dark Red)
-    val darkRedStyle = SpanStyle(
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFF_980000)
-    )
-
-    // Hadith P1 (Blue)
-    val blueStyle = SpanStyle(
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFF_00008B) // A dark blue, for example
-    )
-
-    // Hadith P2 (Green)
-    val greenStyle = SpanStyle(
-        color = Color(0xFF_006400) // A dark green
-    )
-
+        TextType.SHARH -> listOf(
+            SpanStyle(fontWeight = FontWeight.Bold),
+            SpanStyle(fontWeight = FontWeight.SemiBold),
+            SpanStyle(fontWeight = FontWeight.Medium)
+        )
+    }
     // Regex to split the string by all known tags, keeping the tags
-    val tagPattern = "(<red>|</red>|<darkred>|</darkred>|<blue>|</blue>|<green>|</green>|\\n)"
+    val tagPattern = "(</?p[0-2]>|\\n)"
     val regex = Regex("(?=${tagPattern})|(?<=${tagPattern})")
     val tokens = htmlText.split(regex).filter { it.isNotEmpty() }
 
     val annotatedString = buildAnnotatedString {
         // These booleans track the *current* style state
-        var isRed = false
-        var isDarkRed = false
-        var isBlue = false
-        var isGreen = false
+        var isP0 = false
+        var isP1 = false
+        var isP2 = false
 
         for (token in tokens) {
             when (token) {
                 // Update state on open tags
-                "<red>" -> isRed = true
-                "<darkred>" -> isDarkRed = true
-                "<blue>" -> isBlue = true
-                "<green>" -> isGreen = true
-                "</red>" -> isRed = false
-                "</darkred>" -> isDarkRed = false
-                "</blue>" -> isBlue = false
-                "</green>" -> isGreen = false
+                "<p0>" -> isP0 = true
+                "<p1>" -> isP1 = true
+                "<p2>" -> isP2 = true
+                "</p0>" -> isP0 = false
+                "</p1>" -> isP1 = false
+                "</p2>" -> isP2 = false
                 // Handle newlines
                 "\n" -> append("\n")
                 // Handle a text token
                 else -> {
-                    // --- 3. Build the combined style for this token ---
-                    var currentStyle = SpanStyle()
-
-                    // Apply styles in order of *lowest* to *highest* priority
-                    // to ensure the correct style "wins" any overlap.
-
-                    // Hadith P1 (Lowest priority, just changes font style)
-                    if (isBlue) currentStyle = currentStyle.merge(blueStyle)
-
-                    // Hadith P2 (Overwrites blue color if nested)
-                    if (isGreen) currentStyle = currentStyle.merge(greenStyle)
-
-                    // Sharh P2 (Bold + Dark Red)
-                    if (isDarkRed) currentStyle = currentStyle.merge(darkRedStyle)
-
-                    // Sharh P1 (Bold + Bright Red, will overwrite Dark Red if nested)
-                    if (isRed) currentStyle = currentStyle.merge(redStyle)
+                    val currentStyle = if (isP0) {
+                        styleList[0]
+                    } else if (isP1) {
+                        styleList[1]
+                    } else if (isP2) {
+                        styleList[2]
+                    } else {
+                        SpanStyle() // Default style for untagged text
+                    }
 
                     // Append the text with the final, merged style
                     withStyle(style = currentStyle) {

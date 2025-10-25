@@ -57,6 +57,7 @@ import com.nader.riyadalsalheen.ui.components.HideSystemBars
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.NavigationBottomSheet
+import com.nader.riyadalsalheen.ui.components.TextType
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -71,13 +72,7 @@ data class HadithDetailUiState(
 )
 
 fun shareHadith(context: Context, hadithDetails: HadithDetails) {
-    val shareText = buildString {
-        appendLine("📖 ${hadithDetails.hadith.title}")
-        appendLine()
-        appendLine(hadithDetails.hadith.matn.replace(Regex("<[^>]*>"), "")) // Clean HTML tags for sharing
-        appendLine()
-        appendLine("Source: Riyad al Saleheen - Hadith #${hadithDetails.hadith.id}")
-    }
+    val shareText = hadithDetails.hadith.matn.replace(Regex("<[^>]*>"), "")
 
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
@@ -149,7 +144,7 @@ fun HadithDetailContent(
 
     // FullScreen
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val isFullScreen =  scrollBehavior.state.collapsedFraction != 0f
+    val isFullScreen =  scrollBehavior.state.collapsedFraction == 1f
     if (isFullScreen) {
         HideSystemBars()
     }
@@ -346,6 +341,7 @@ fun HadithPageContent(
             Column(modifier = Modifier.padding(16.dp)) {
                 HtmlText(
                     htmlText = currentHadith.hadith.matn,
+                    textType = TextType.HADITH,
                     fontSize = fontSize.sp,
                     lineHeight = (fontSize * 1.8f).sp,
                     style = MaterialTheme.typography.bodyLarge
@@ -357,7 +353,8 @@ fun HadithPageContent(
 
                 HtmlText(
                     htmlText = currentHadith.hadith.sharh,
-                    fontSize = (fontSize - 2).sp,
+                    textType = TextType.SHARH,
+                    fontSize = fontSize.sp,
                     lineHeight = (fontSize * 1.6f).sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium

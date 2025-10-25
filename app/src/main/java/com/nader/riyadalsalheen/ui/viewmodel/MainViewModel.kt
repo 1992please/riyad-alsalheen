@@ -92,7 +92,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadAndGetHadith(hadithId: Int): HadithDetails? {
         if(currentHadithId != hadithId) {
-            Log.d("Nader", "navigateToHadith: $hadithId")
             currentHadithId = hadithId
             updateCachedHadiths()
             viewModelScope.launch {

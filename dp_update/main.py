@@ -2,12 +2,14 @@ import sqlite3
 import re
 from bs4 import BeautifulSoup
 import shutil
+from collections import defaultdict
+import json
 
 def log_print(*args, **kwargs):
     with open("hadith_processing_log.txt", 'w', encoding='utf-8') as log_file:
         print(*args, **kwargs, file=log_file)
 
-def clean_html_text(html_content):
+def clean_html_text(html_content, textType):
     if not html_content:
         return ""
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -16,44 +18,68 @@ def clean_html_text(html_content):
     br_marker = "||BR||"
 # Define markers for each style
     style_markers = {
-        'red': ("{{RED}}", "{{/RED}}"),
-        'darkred': ("{{DARKRED}}", "{{/DARKRED}}"),
-        'blue': ("{{BLUE}}", "{{/BLUE}}"),
-        'green': ("{{GREEN}}", "{{/GREEN}}"),
+        'hadith':{
+            'P0': {
+                'markers': ("{{P0}}", "{{/P0}}"),
+                'html_markers': ("<p0>", "</p0>"),
+                'colors': ["color:rgb(0, 0, 255)", "color:rgb(255, 0, 0)"]
+            },
+            'P1': {
+                'markers': ("{{P1}}", "{{/P1}}"),
+                'html_markers': ("<p1>", "</p1>"),
+                'colors': ["color:rgb(0, 128, 0)", "color:rgb(152, 0, 0)"]
+            },
+            'P2': {
+                'markers': ("{{P2}}", "{{/P2}}"),
+                'html_markers': ("<p2>", "</p2>"),
+                'colors': ["color:rgb(128, 0, 0)", "color:rgb(128, 0, 128)", "color:rgb(106, 168, 79)",
+                        "color:rgb(56, 118, 29)", "color:rgb(0, 0, 128)", "color:rgb(39, 78, 19)", 
+                        "color:rgb(128, 128, 0)"]
+            },
+        },
+        'sharh': {
+            'P0': {
+                'markers': ("{{P0}}", "{{/P0}}"),
+                'html_markers': ("<p0>", "</p0>"),
+                'colors': ["color:rgb(255, 0, 0)", "color:rgb(255, 255, 0)", "color:rgb(255, 7, 7)"]
+            },
+            'P1': {
+                'markers': ("{{P1}}", "{{/P1}}"),
+                'html_markers': ("<p1>", "</p1>"),
+                'colors': [ "color:rgb(152, 0, 0)", "color:rgb(0, 0, 255)"]
+            },
+            'P2': {
+                'markers': ("{{P2}}", "{{/P2}}"),
+                'html_markers': ("<p2>", "</p2>"),
+                'colors': ["color:rgb(0, 128, 0)", "color:rgb(48, 48, 48)", "color:rgb(34, 34, 34)",
+                        "color:rgb(51, 51, 51)", "color:rgb(51, 51, 153)"]
+            },
+        }
     }
+
+    markers = style_markers[textType]
 
     # Replace <br> tags with a marker
     for br in soup.find_all("br"):
         br.replace_with(br_marker)
     
+    rgb_pattern = re.compile(
+        r'(color:rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))',
+        re.IGNORECASE
+    )
 
-    style_regex_p1 = re.compile(r'color:rgb\(0, 0, 255\)')
-    start, end = style_markers['blue']
-    for span in soup.find_all('span', style=style_regex_p1):
-        span.insert_before(start)
-        span.insert_after(end)
-        span.unwrap()
-
-    style_regex_p2 = re.compile(r'color:rgb\(0, 128, 0\)')
-    start, end = style_markers['green']
-    for span in soup.find_all('span', style=style_regex_p2):
-        span.insert_before(start)
-        span.insert_after(end)
-        span.unwrap()
-
-    style_regex_p3 = re.compile(r'color:rgb\(255, 0, 0\)')
-    start, end = style_markers['red']
-    for span in soup.find_all('span', style=style_regex_p3):
-        span.insert_before(start)
-        span.insert_after(end)
-        span.unwrap()
-
-    style_regex_p4 = re.compile(r'color:rgb\(152, 0, 0\)')
-    start, end = style_markers['darkred']
-    for span in soup.find_all('span', style=style_regex_p4):
-        span.insert_before(start)
-        span.insert_after(end)
-        span.unwrap()
+    for span in soup.find_all('span', style=rgb_pattern):
+        style_str = span.get('style')
+        found_colors = rgb_pattern.findall(style_str)
+        content = span.get_text(strip=True)
+        if found_colors and content and len(found_colors) > 0:
+            color = found_colors[0]
+            for key in markers:
+                if color in markers[key]["colors"]:
+                    span.insert_before(markers[key]['markers'][0])
+                    span.insert_after(markers[key]['markers'][1])
+                    span.unwrap()
+                    break
 
     text_parts = []
     # Find all major block-level elements that should be separated by newlines
@@ -84,18 +110,12 @@ def clean_html_text(html_content):
     
     final_text = '\n'.join(text_parts)
 
-    final_text = final_text.replace(style_markers['red'][0], '<red>')
-    final_text = final_text.replace(style_markers['red'][1], '</red>')
-    final_text = final_text.replace(style_markers['darkred'][0], '<darkred>')
-    final_text = final_text.replace(style_markers['darkred'][1], '</darkred>')
-    final_text = final_text.replace(style_markers['blue'][0], '<blue>')
-    final_text = final_text.replace(style_markers['blue'][1], '</blue>')
-    final_text = final_text.replace(style_markers['green'][0], '<green>')
-    final_text = final_text.replace(style_markers['green'][1], '</green>')
+    for key in markers:
+        final_text = final_text.replace(markers[key]['markers'][0], markers[key]['html_markers'][0])
+        final_text = final_text.replace(markers[key]['markers'][1], markers[key]['html_markers'][1])
 
     # Join the parts with a single newline, which creates the desired paragraph structure
     return final_text
-
 
 def remove_tashkeel(text):
     if not text:
@@ -121,6 +141,84 @@ def add_column_if_not_exists(conn, table_name, column_name, column_type):
     else:
         print(f"Column '{column_name}' already exists in '{table_name}'.")
 
+def find_all_colors_used(conn):
+    cursor = conn.cursor()
+
+    # 1. Add the new column for search-friendly text
+    add_column_if_not_exists(conn, "hadiths", "hadith_normal", "TEXT")
+
+    # 2. Fetch all hadiths that need processing
+    cursor.execute("SELECT id, hadith, sharh FROM hadiths")
+    all_hadiths = cursor.fetchall()
+    
+    total_hadiths = len(all_hadiths)
+    print(f"\nFound {total_hadiths} hadiths to process.") 
+
+    hadith_color_map = defaultdict(list)
+    sharh_color_map = defaultdict(list)
+
+    # Regex to find rgb(...) colors within a style attribute
+    rgb_pattern = re.compile(
+        r'(color:rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))',
+        re.IGNORECASE
+    )
+
+    # Process each HTML string in the input list
+    for i, row in enumerate(all_hadiths):
+        hadith_id, original_hadith, original_sharh = row
+        print(f"Processing hadith {i + 1}/{total_hadiths} (ID: {hadith_id})... Done.")
+
+        # Parse the HTML
+        soup = BeautifulSoup(original_hadith, 'html.parser')
+        for tag in soup.find_all('span', style=rgb_pattern):
+            style_str = tag.get('style')
+            found_colors = rgb_pattern.findall(style_str)
+            if found_colors:
+                content = tag.get_text(strip=True)
+                if content:
+                    for color in found_colors:
+                        if not hadith_color_map[color] or len(hadith_color_map[color]) < 20:
+                            hadith_color_map[color].append(content)
+
+        soup = BeautifulSoup(original_sharh, 'html.parser')
+        for tag in soup.find_all('span', style=rgb_pattern):
+            style_str = tag.get('style')
+            found_colors = rgb_pattern.findall(style_str)
+            if found_colors:
+                content = tag.get_text(strip=True)
+                if content:
+                    for color in found_colors:
+                        if not sharh_color_map[color] or len(sharh_color_map[color]) < 20:
+                            sharh_color_map[color].append(content)
+
+    log_print(f"hadith_color_map:\n{json.dumps(hadith_color_map, indent = 4, ensure_ascii=False)}\nsharh_color_map:\n{json.dumps(sharh_color_map, indent = 4, ensure_ascii=False)}")
+        
+def test_process_and_print_hadith(conn):
+    cursor = conn.cursor()
+
+    # 1. Add the new column for search-friendly text
+    add_column_if_not_exists(conn, "hadiths", "hadith_normal", "TEXT")
+
+    # 2. Fetch all hadiths that need processing
+    cursor.execute("SELECT id, hadith, sharh FROM hadiths")
+    all_hadiths = cursor.fetchall()
+    
+    total_hadiths = len(all_hadiths)
+    print(f"\nFound {total_hadiths} hadiths to process.")
+
+    hadith_id, original_hadith, original_sharh = all_hadiths[1]
+    cleaned_hadith = clean_html_text(original_hadith, "hadith")
+    cleaned_sharh = clean_html_text(original_sharh, "sharh")
+    hadith_normal = remove_tashkeel(cleaned_hadith)
+
+    log_print(f"""
+{original_hadith}
+-----------------------------------------------------------------------------------------------------------
+{cleaned_hadith}
+-----------------------------------------------------------------------------------------------------------
+{original_sharh}
+-----------------------------------------------------------------------------------------------------------
+{cleaned_sharh}""")
 
 def process_and_update_hadiths(conn):
     cursor = conn.cursor()
@@ -135,26 +233,13 @@ def process_and_update_hadiths(conn):
     total_hadiths = len(all_hadiths)
     print(f"\nFound {total_hadiths} hadiths to process.")
 
-#     hadith_id, original_hadith, original_sharh = all_hadiths[1]
-#     cleaned_hadith = clean_html_text(original_hadith)
-#     cleaned_sharh = clean_html_text(original_sharh)
-#     hadith_normal = remove_tashkeel(cleaned_hadith)
-        
-#     log_print(f"""
-# {original_hadith}
-# -----------------------------------------------------------------------------------------------------------
-# {cleaned_hadith}
-# -----------------------------------------------------------------------------------------------------------
-# {original_sharh}
-# -----------------------------------------------------------------------------------------------------------
-# {cleaned_sharh}""")
     # 3. Loop through, process, and update each hadith
     for i, row in enumerate(all_hadiths):
         hadith_id, original_hadith, original_sharh = row
 
         # Clean the HTML content
-        cleaned_hadith = clean_html_text(original_hadith)
-        cleaned_sharh = clean_html_text(original_sharh)
+        cleaned_hadith = clean_html_text(original_hadith, 'hadith')
+        cleaned_sharh = clean_html_text(original_sharh, 'sharh')
         
         # Create the search-friendly version without tashkeel
         hadith_normal = remove_tashkeel(cleaned_hadith)
@@ -194,6 +279,7 @@ def main():
     try:
         print(f"Connecting to processed database: {target_database_path}")
         conn = sqlite3.connect(target_database_path)
+        # test_process_and_print_hadith(conn)
         process_and_update_hadiths(conn)
         
     except sqlite3.Error as e:
