@@ -39,12 +39,12 @@ fun HtmlText(
 
         TextType.SHARH -> listOf(
             SpanStyle(fontWeight = FontWeight.Bold),
-            SpanStyle(fontWeight = FontWeight.SemiBold),
-            SpanStyle(fontWeight = FontWeight.Medium)
+            SpanStyle(fontWeight = FontWeight.Bold),
+            SpanStyle(fontWeight = FontWeight.Bold)
         )
     }
     // Regex to split the string by all known tags, keeping the tags
-    val tagPattern = "(</?p[0-2]>|\\n)"
+    val tagPattern = "(</?p[0-2]>|<bullet>|\\n)"
     val regex = Regex("(?=${tagPattern})|(?<=${tagPattern})")
     val tokens = htmlText.split(regex).filter { it.isNotEmpty() }
 
@@ -65,6 +65,7 @@ fun HtmlText(
                 "</p2>" -> isP2 = false
                 // Handle newlines
                 "\n" -> append("\n")
+                "<bullet>" -> append("■")
                 // Handle a text token
                 else -> {
                     val currentStyle = if (isP0) {

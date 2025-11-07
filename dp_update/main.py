@@ -16,7 +16,8 @@ def clean_html_text(html_content, textType):
     
     # Define markers. We use text markers because get_text() will strip HTML tags.
     br_marker = "||BR||"
-# Define markers for each style
+    bullet_marker = ("{{BULLET_MARKER}}", "<bullet>")
+    # Define markers for each style
     style_markers = {
         'hadith':{
             'P0': {
@@ -35,7 +36,7 @@ def clean_html_text(html_content, textType):
                 'colors': ["color:rgb(128, 0, 0)", "color:rgb(128, 0, 128)", "color:rgb(106, 168, 79)",
                         "color:rgb(56, 118, 29)", "color:rgb(0, 0, 128)", "color:rgb(39, 78, 19)", 
                         "color:rgb(128, 128, 0)"]
-            },
+            }
         },
         'sharh': {
             'P0': {
@@ -53,7 +54,7 @@ def clean_html_text(html_content, textType):
                 'html_markers': ("<p2>", "</p2>"),
                 'colors': ["color:rgb(0, 128, 0)", "color:rgb(48, 48, 48)", "color:rgb(34, 34, 34)",
                         "color:rgb(51, 51, 51)", "color:rgb(51, 51, 153)"]
-            },
+            }
         }
     }
 
@@ -76,9 +77,12 @@ def clean_html_text(html_content, textType):
             color = found_colors[0]
             for key in markers:
                 if color in markers[key]["colors"]:
-                    span.insert_before(markers[key]['markers'][0])
-                    span.insert_after(markers[key]['markers'][1])
-                    span.unwrap()
+                    new_text_node = (
+                        f"{markers[key]['markers'][0]}"
+                        f"{content}"
+                        f"{markers[key]['markers'][1]}"
+                    )
+                    span.replace_with(new_text_node)
                     break
 
     text_parts = []
@@ -104,7 +108,7 @@ def clean_html_text(html_content, textType):
         if text:
             # For list items, we can add a bullet for clarity
             if element.name == 'li':
-                text_parts.append(f"• {text}")
+                text_parts.append(f"{bullet_marker[0]} {text}")
             else:
                 text_parts.append(text)
     
@@ -113,6 +117,8 @@ def clean_html_text(html_content, textType):
     for key in markers:
         final_text = final_text.replace(markers[key]['markers'][0], markers[key]['html_markers'][0])
         final_text = final_text.replace(markers[key]['markers'][1], markers[key]['html_markers'][1])
+
+    final_text = final_text.replace(bullet_marker[0], bullet_marker[1])
 
     # Join the parts with a single newline, which creates the desired paragraph structure
     return final_text
