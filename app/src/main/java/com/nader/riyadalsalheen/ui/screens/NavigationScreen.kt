@@ -1,11 +1,10 @@
-package com.nader.riyadalsalheen.ui.components
+package com.nader.riyadalsalheen.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,13 +23,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,72 +44,66 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
 import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
+import com.nader.riyadalsalheen.model.HadithDetails
+import com.nader.riyadalsalheen.ui.components.LoadingContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavigationBottomSheet(
+fun NavigationScreen(
     books: List<Book>,
     doors: List<Door>,
-    currentBookId: Int,
-    currentDoorId: Int,
+    currentHadith: HadithDetails?,
     onNavigateToDoor: (Int) -> Unit,
-    onDismiss: () -> Unit
+    onBackPressed: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var expandedBookId by remember { mutableIntStateOf(currentBookId) }
-
-    val lazyListState = rememberLazyListState()
-    LaunchedEffect(Unit) {
-        lazyListState.animateScrollToItem(index = currentBookId - 1)
+    if (currentHadith == null) {
+        return LoadingContent()
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.8f)
-        ) {
-            // Sheet Header
-            Text(
-                text = "التنقل بين الأبواب",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-            )
+    var expandedBookId by remember { mutableIntStateOf(-1) }
+    val lazyListState = rememberLazyListState()
+    LaunchedEffect(Unit) {
+        lazyListState.animateScrollToItem(index = currentHadith.book.id - 1)
+    }
 
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(books) { book ->
-                    NavigationBookItem(
-                        book = book,
-                        doors = doors.filter { it.bookId == book.id },
-                        isExpanded = expandedBookId == book.id,
-                        isCurrentBook = currentBookId == book.id,
-                        currentDoorId = currentDoorId,
-                        onExpandToggle = {
-                            expandedBookId = if (expandedBookId == book.id) -1 else book.id
-                        },
-                        onDoorClick = onNavigateToDoor
-                    )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("التنقل بين الأبواب") },
+                navigationIcon = {
+                    IconButton(onClick = onBackPressed) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_back_24),
+                            contentDescription = "رجوع"
+                        )
+                    }
                 }
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(books) { book ->
+                NavigationBookItem(
+                    book = book,
+                    doors = doors.filter { it.bookId == book.id },
+                    isExpanded = expandedBookId == book.id,
+                    isCurrentBook = currentHadith.book.id == book.id,
+                    currentDoorId = currentHadith.door.id,
+                    onExpandToggle = {
+                        expandedBookId = if (expandedBookId == book.id) -1 else book.id
+                    },
+                    onDoorClick = onNavigateToDoor
+                )
             }
         }
     }

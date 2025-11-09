@@ -27,6 +27,7 @@ import com.nader.riyadalsalheen.ui.screens.AboutScreen
 import com.nader.riyadalsalheen.ui.screens.BookmarksScreen
 import com.nader.riyadalsalheen.ui.screens.HadithDetailScreen
 import com.nader.riyadalsalheen.ui.screens.SearchScreen
+import com.nader.riyadalsalheen.ui.screens.NavigationScreen
 import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
@@ -70,6 +71,8 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 versionName = viewModel.packageInfo.versionName ?: "1.0.0",
                 onNavigateToAbout = { navController.navigate("about") },
                 onNavigateToBookmarks = { navController.navigate("bookmarks") },
+                onNavigateToNavigation = { navController.navigate("navigation") },
+                onNavigateToSearch = { navController.navigate("search") },
                 onNavigateToHadith = {
                     navController.navigate("hadithDetail/$it")
                 },
@@ -90,14 +93,6 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 HadithDetailScreen(
                     initHadithID = hadithId,
                     viewModel = viewModel,
-                    onLoadDoor = { doorId ->
-                        coroutineScope.launch {
-                            viewModel.getFirstHadithIdInDoor(doorId)?.let {
-                                navController.navigate("hadithDetail/$it")
-                            }
-                        }
-                    },
-                    onSearch = { navController.navigate("search") },
                     onOpenDrawer = { coroutineScope.launch { drawerState.open() } }
                 )
             }
@@ -125,6 +120,23 @@ fun MainActivityComposable(viewModel: MainViewModel) {
             }
             composable("about") {
                 AboutScreen(
+                    onBackPressed = {
+                        navController.navigateUp()
+                    }
+                )
+            }
+            composable("navigation") {
+                NavigationScreen(
+                    books = viewModel.books,
+                    doors = viewModel.doors,
+                    currentHadith = viewModel.getCurrentHadith(),
+                    onNavigateToDoor = { doorId ->
+                        coroutineScope.launch {
+                            viewModel.getFirstHadithIdInDoor(doorId)?.let {
+                                navController.navigate("hadithDetail/$it")
+                            }
+                        }
+                    },
                     onBackPressed = {
                         navController.navigateUp()
                     }

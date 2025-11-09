@@ -2,7 +2,6 @@ package com.nader.riyadalsalheen.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -32,11 +31,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,7 +52,6 @@ import com.nader.riyadalsalheen.model.HadithDetails
 import com.nader.riyadalsalheen.ui.components.HideSystemBars
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
-import com.nader.riyadalsalheen.ui.components.NavigationBottomSheet
 import com.nader.riyadalsalheen.ui.components.TextType
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
@@ -88,8 +83,6 @@ fun shareHadith(context: Context, hadithDetails: HadithDetails) {
 fun HadithDetailScreen(
     initHadithID: Int,
     viewModel: MainViewModel,
-    onLoadDoor: (Int) -> Unit,
-    onSearch: () -> Unit,
     onOpenDrawer: () -> Unit
 ) {
     val uiState = HadithDetailUiState(
@@ -104,10 +97,8 @@ fun HadithDetailScreen(
     HadithDetailContent(
         uiState = uiState,
         getHadith = { viewModel.cachedHadiths[it] },
-        onSearch = onSearch,
         onOpenDrawer = onOpenDrawer,
         loadAndGetHadith = { viewModel.loadAndGetHadith(it) },
-        onLoadDoor = onLoadDoor,
         onToggleBookmark = { viewModel.toggleBookmark(it) }
     )
 }
@@ -118,9 +109,7 @@ fun HadithDetailContent(
     uiState : HadithDetailUiState,
     getHadith: (Int) -> HadithDetails?,
     loadAndGetHadith: (Int) -> HadithDetails?,
-    onSearch: () -> Unit = {},
     onOpenDrawer: () -> Unit = {},
-    onLoadDoor: (Int) -> Unit = {},
     onToggleBookmark: (Int) -> Unit = {}
 ) {
     // Pager state for swipe navigation
@@ -138,7 +127,6 @@ fun HadithDetailContent(
     val context = LocalContext.current
 
     val isBookmarked = uiState.bookmarks.any { currentHadith.hadith.id == it.id }
-    var showBottomSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -158,7 +146,6 @@ fun HadithDetailContent(
                 isBookmarked = isBookmarked,
                 scrollBehavior = scrollBehavior,
                 onMenuClick = onOpenDrawer,
-                onTitleClick = { showBottomSheet = true },
                 onBookmarkClick = {
                     onToggleBookmark(currentHadith.hadith.id)
                     coroutineScope.launch {
@@ -167,7 +154,7 @@ fun HadithDetailContent(
                         snackbarHostState.showSnackbar(message)
                     }
                 },
-                onSearchClick = onSearch
+                onShareClick = { shareHadith(context, currentHadith) }
             )
         }
     ) { paddingValues ->
@@ -186,26 +173,9 @@ fun HadithDetailContent(
             // Show current hadith content or placeholder while loading
             HadithPageContent(
                 currentHadith = getHadith(page + 1),
-                fontSize = uiState.fontSize,
-                onLongTap = { shareHadith(context, currentHadith) }
+                fontSize = uiState.fontSize
             )
         }
-    }
-
-    if (showBottomSheet) {
-        NavigationBottomSheet(
-            books = uiState.books,
-            doors = uiState.doors,
-            currentBookId = currentHadith.book.id,
-            currentDoorId = currentHadith.door.id,
-            onNavigateToDoor = { doorId ->
-                onLoadDoor(doorId)
-                showBottomSheet = false
-            },
-            onDismiss = {
-                showBottomSheet = false
-            }
-        )
     }
 }
 
@@ -216,9 +186,8 @@ fun TopAppBarContent(
     isBookmarked: Boolean,
     scrollBehavior: TopAppBarScrollBehavior,
     onMenuClick: () -> Unit,
-    onTitleClick: () -> Unit,
     onBookmarkClick: () -> Unit,
-    onSearchClick: () -> Unit
+    onShareClick: () -> Unit
 ) {
     Column {
         TopAppBar(
@@ -237,11 +206,10 @@ fun TopAppBarContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onTitleClick)
                 ) {
                     Text(
                         text = currentHadith.door.title,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         overflow = TextOverflow.Ellipsis,
@@ -249,7 +217,7 @@ fun TopAppBarContent(
                     )
                     Text(
                         text = currentHadith.book.title,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         overflow = TextOverflow.Ellipsis,
@@ -271,10 +239,10 @@ fun TopAppBarContent(
                     )
                 }
 
-                IconButton(onClick = onSearchClick) {
+                IconButton(onClick = onShareClick) {
                     Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
-                        contentDescription = "البحث",
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_share_24),
+                        contentDescription = "Share",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -290,8 +258,7 @@ fun TopAppBarContent(
 @Composable
 fun HadithPageContent(
     currentHadith: HadithDetails?,
-    fontSize: Float,
-    onLongTap: () -> Unit
+    fontSize: Float
 ) {
     if(currentHadith == null) {
         return LoadingContent()
@@ -329,11 +296,7 @@ fun HadithPageContent(
 
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = { },
-                    onLongClick = onLongTap
-                ),
+                .fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(2.dp)

@@ -90,6 +90,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun getCurrentHadith(): HadithDetails? {
+        return cachedHadiths[currentHadithId]
+    }
+
     fun loadAndGetHadith(hadithId: Int): HadithDetails? {
         if(currentHadithId != hadithId) {
             currentHadithId = hadithId

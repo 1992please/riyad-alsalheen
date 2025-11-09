@@ -41,6 +41,8 @@ fun NavigationDrawer(
     onNavigateToBookmarks: () -> Unit = {},
     onNavigateToHadith: (Int) -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
+    onNavigateToNavigation: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     onFontSizeChange: () -> Unit = {},
     onToggleDarkMode: () -> Unit = {},
     onClose: () -> Unit = {}
@@ -107,12 +109,41 @@ fun NavigationDrawer(
                 }
             }
 
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 8.dp)
+                contentPadding = PaddingValues(bottom = 8.dp)
             ) {
+                item {
+                    DrawerMenuItem(
+                        text = "البحث",
+                        icon = ImageVector.vectorResource(R.drawable.ic_search_24),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable {
+                            onNavigateToSearch()
+                            onClose()
+                        }
+                    )
+                }
+
+                item {
+                    DrawerMenuItem(
+                        text = "التنقل بين الأبواب",
+                        icon = ImageVector.vectorResource(R.drawable.ic_door_front_24),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable {
+                            onNavigateToNavigation()
+                            onClose()
+                        }
+                    )
+                }
+
                 // Divider
                 item {
                     HorizontalDivider(
