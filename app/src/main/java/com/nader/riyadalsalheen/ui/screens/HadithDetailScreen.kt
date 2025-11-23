@@ -2,7 +2,14 @@ package com.nader.riyadalsalheen.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.calculateTargetValue
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -29,19 +36,20 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
@@ -49,22 +57,18 @@ import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
 import com.nader.riyadalsalheen.model.Hadith
 import com.nader.riyadalsalheen.model.HadithDetails
-import com.nader.riyadalsalheen.ui.components.HideSystemBars
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.TextType
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-
-data class HadithDetailUiState(
-    val books: List<Book> = emptyList(),
-    val doors: List<Door> = emptyList(),
-    val initHadithID: Int = 0,
-    val hadithCount: Int = 0,
-    val fontSize: Float = 18f,
-    val bookmarks: List<Hadith> = emptyList()
-)
+sealed interface ScrollEvent {
+    data class Drag(val delta: Float) : ScrollEvent
+    data class Fling(val velocity: Float) : ScrollEvent
+}
 
 fun shareHadith(context: Context, hadithDetails: HadithDetails) {
     val shareText = hadithDetails.hadith.matn.replace(Regex("<[^>]*>"), "")
@@ -78,6 +82,15 @@ fun shareHadith(context: Context, hadithDetails: HadithDetails) {
     // Use the Android Sharesheet
     context.startActivity(Intent.createChooser(intent, "Share Hadith"))
 }
+
+data class HadithDetailUiState(
+    val books: List<Book> = emptyList(),
+    val doors: List<Door> = emptyList(),
+    val initHadithID: Int = 0,
+    val hadithCount: Int = 0,
+    val fontSize: Float = 18f,
+    val bookmarks: List<Hadith> = emptyList()
+)
 
 @Composable
 fun HadithDetailScreen(
@@ -131,20 +144,16 @@ fun HadithDetailContent(
     val coroutineScope = rememberCoroutineScope()
 
     // FullScreen
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val isFullScreen =  scrollBehavior.state.collapsedFraction == 1f
-    if (isFullScreen) {
-        HideSystemBars()
-    }
+//    if (scrollBehavior.state.collapsedFraction > .7f) {
+//        HideSystemBars()
+//    }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBarContent(
                 currentHadith = currentHadith,
                 isBookmarked = isBookmarked,
-                scrollBehavior = scrollBehavior,
                 onMenuClick = onOpenDrawer,
                 onBookmarkClick = {
                     onToggleBookmark(currentHadith.hadith.id)
@@ -158,22 +167,86 @@ fun HadithDetailContent(
             )
         }
     ) { paddingValues ->
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    top = paddingValues.calculateTopPadding(),
-                    start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-                    end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
-                    bottom = 0.dp
-                ),
-            beyondViewportPageCount = 1 // Pre-load adjacent pages
-        ) { page ->
-            // Show current hadith content or placeholder while loading
-            HadithPageContent(
-                currentHadith = getHadith(page + 1),
-                fontSize = uiState.fontSize
+
+        val verticalScrollChannel = remember { Channel<ScrollEvent>(Channel.UNLIMITED) }
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                top = paddingValues.calculateTopPadding(),
+                start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
+                bottom = 0.dp
+            )) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize(),
+                beyondViewportPageCount = 1
+            ) { page ->
+                // Show current hadith content or placeholder while loading
+                HadithPageContent(
+                    currentHadith = getHadith(page + 1),
+                    fontSize = uiState.fontSize,
+                    scrollChannel = verticalScrollChannel,
+                    isCurrentPage = page == pagerState.currentPage
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        var velocity = Velocity.Zero
+                        detectDragGestures(
+                            onDragEnd = {
+                                val isHorizontalSwipe = kotlin.math.abs(velocity.x) > kotlin.math.abs(velocity.y)
+                                var targetPage = pagerState.currentPage
+                                if (isHorizontalSwipe) {
+                                    targetPage = when {
+                                        pagerState.currentPageOffsetFraction > 0.5f -> pagerState.currentPage + 1
+                                        pagerState.currentPageOffsetFraction < -0.5f -> pagerState.currentPage - 1
+                                        velocity.x > 2000 && pagerState.currentPageOffsetFraction > 0.1f-> pagerState.currentPage + 1  // Fast swipe right
+                                        velocity.x < -2000 && pagerState.currentPageOffsetFraction < -0.1f -> pagerState.currentPage - 1 // Fast swipe left
+                                        else -> pagerState.currentPage
+                                    }
+                                } else {
+                                    verticalScrollChannel.trySend(ScrollEvent.Fling(-velocity.y))
+                                }
+
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(
+                                        targetPage.coerceIn(
+                                            0,
+                                            pagerState.pageCount - 1
+                                        )
+                                    )
+                                }
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume() // We consume the touch
+                                val deltaTime = (change.uptimeMillis - change.previousUptimeMillis).coerceAtLeast(1L)
+                                val drag = dragAmount * 1000f / deltaTime.toFloat()
+                                velocity = Velocity(drag.x, drag.y)
+                                val (dx, dy) = dragAmount
+
+                                // Determine intention (Locking logic)
+                                val isHorizontalDrag = kotlin.math.abs(dx) > kotlin.math.abs(dy)
+
+                                if (isHorizontalDrag) {
+                                    // --- Move Pager ---
+                                    // We use scrollBy with a coroutine for smooth drag,
+                                    // or dispatchRawDelta for instant "stick to finger"
+//                                    pagerState.dispatchRawDelta(dx);
+                                    coroutineScope.launch {
+                                        pagerState.scrollBy(dx)
+                                    }
+                                } else {
+                                    // --- Move Vertical Text ---
+                                    verticalScrollChannel.trySend(ScrollEvent.Drag(-dy))
+                                }
+                            }
+                        )
+                    }
             )
         }
     }
@@ -184,87 +257,111 @@ fun HadithDetailContent(
 fun TopAppBarContent(
     currentHadith: HadithDetails,
     isBookmarked: Boolean,
-    scrollBehavior: TopAppBarScrollBehavior,
     onMenuClick: () -> Unit,
     onBookmarkClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
-    Column {
-        TopAppBar(
-            expandedHeight = 80.dp,
-            scrollBehavior = scrollBehavior,
-            navigationIcon = {
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
-                        contentDescription = "القائمة",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            title = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    Text(
-                        text = currentHadith.door.title,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = currentHadith.book.title,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1
-                    )
-                }
-            },
-            actions = {
-                IconButton(onClick = onBookmarkClick) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(
-                            if (isBookmarked) R.drawable.ic_bookmark_filled_24
-                            else R.drawable.ic_bookmark_24
-                        ),
-                        contentDescription = "المفضلة",
-                        tint = if (isBookmarked)
-                            MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_menu_24),
+                    contentDescription = "القائمة",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        title = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = currentHadith.door.title,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1
+                )
+                Text(
+                    text = currentHadith.book.title,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = onBookmarkClick) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(
+                        if (isBookmarked) R.drawable.ic_bookmark_filled_24
+                        else R.drawable.ic_bookmark_24
+                    ),
+                    contentDescription = "المفضلة",
+                    tint = if (isBookmarked)
+                        MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-                IconButton(onClick = onShareClick) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.ic_share_24),
-                        contentDescription = "Share",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
-            )
+            IconButton(onClick = onShareClick) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_share_24),
+                    contentDescription = "Share",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            scrolledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f)
         )
-    }
+    )
 }
 
 @Composable
 fun HadithPageContent(
     currentHadith: HadithDetails?,
-    fontSize: Float
+    fontSize: Float,
+    scrollChannel: Channel<ScrollEvent>, // Receive the channel
+    isCurrentPage: Boolean // Know if I am the active page
 ) {
     if(currentHadith == null) {
         return LoadingContent()
     }
 
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(isCurrentPage) {
+        if (isCurrentPage) {
+            // Only the visible page listens to the scroll commands
+            scrollChannel.receiveAsFlow().collect { event ->
+                when(event){
+                    is ScrollEvent.Drag -> {
+                        scrollState.scrollBy(event.delta)
+                    }
+                    is ScrollEvent.Fling->{
+                        // Calculate distance based on velocity and decay
+                        val decay = exponentialDecay<Float>()
+                        val targetValue = decay.calculateTargetValue(0f, event.velocity * .5f)
+
+                        scrollState.animateScrollBy(
+                            value = targetValue,
+                            animationSpec = tween(
+                                durationMillis = 400,
+                                easing = LinearOutSlowInEasing
+                            )
+                        )
+                    }
+                }
+
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
