@@ -2,10 +2,15 @@ package com.nader.riyadalsalheen.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.calculateTargetValue
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.scrollBy
@@ -38,8 +43,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -57,6 +65,7 @@ import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
 import com.nader.riyadalsalheen.model.Hadith
 import com.nader.riyadalsalheen.model.HadithDetails
+import com.nader.riyadalsalheen.ui.components.HideSystemBars
 import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.TextType
@@ -144,35 +153,47 @@ fun HadithDetailContent(
     val coroutineScope = rememberCoroutineScope()
 
     // FullScreen
-//    if (scrollBehavior.state.collapsedFraction > .7f) {
-//        HideSystemBars()
-//    }
+    var isFullScreen by remember { mutableStateOf(false) }
+    if (isFullScreen) {
+        HideSystemBars()
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBarContent(
-                currentHadith = currentHadith,
-                isBookmarked = isBookmarked,
-                onMenuClick = onOpenDrawer,
-                onBookmarkClick = {
-                    onToggleBookmark(currentHadith.hadith.id)
-                    coroutineScope.launch {
-                        val message =
-                            if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
-                        snackbarHostState.showSnackbar(message)
-                    }
-                },
-                onShareClick = { shareHadith(context, currentHadith) }
-            )
+            AnimatedVisibility(
+                visible = !isFullScreen,
+                enter = slideInVertically(initialOffsetY = { -it }),
+                exit = slideOutVertically(targetOffsetY = { -it })
+            ) {
+                TopAppBarContent(
+                    currentHadith = currentHadith,
+                    isBookmarked = isBookmarked,
+                    onMenuClick = onOpenDrawer,
+                    onBookmarkClick = {
+                        onToggleBookmark(currentHadith.hadith.id)
+                        coroutineScope.launch {
+                            val message =
+                                if (isBookmarked) "تم إزالة الحديث من المفضلة" else "تم إضافة الحديث إلى المفضلة"
+                            snackbarHostState.showSnackbar(message)
+                        }
+                    },
+                    onShareClick = { shareHadith(context, currentHadith) }
+                )
+            }
         }
     ) { paddingValues ->
+        val animatedPadding by animateDpAsState(
+            targetValue = if (isFullScreen) 0.dp else paddingValues.calculateTopPadding(),
+            label = "contentPaddingAnim"
+        )
 
         val verticalScrollChannel = remember { Channel<ScrollEvent>(Channel.UNLIMITED) }
+
         Box(modifier = Modifier
             .fillMaxSize()
             .padding(
-                top = paddingValues.calculateTopPadding(),
+                top = animatedPadding,
                 start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                 end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
                 bottom = 0.dp
@@ -195,17 +216,45 @@ fun HadithDetailContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clickable(
+                        interactionSource = null,
+                        indication = null, // No ripple for the background tap
+                        onClick = { isFullScreen = !isFullScreen }
+                    )
                     .pointerInput(Unit) {
                         var velocity = Velocity.Zero
                         detectDragGestures(
+                            onDrag = { change, dragAmount ->
+                                change.consume() // We consume the touch
+                                val deltaTime =
+                                    (change.uptimeMillis - change.previousUptimeMillis).coerceAtLeast(
+                                        1L
+                                    )
+                                val drag = dragAmount * 1000f / deltaTime.toFloat()
+                                velocity = Velocity(drag.x, drag.y)
+                                val (dx, dy) = dragAmount
+
+                                // Determine intention (Locking logic)
+                                val isHorizontalDrag = kotlin.math.abs(dx) > kotlin.math.abs(dy)
+
+                                if (isHorizontalDrag) {
+                                    pagerState.dispatchRawDelta(dx)
+//                                    coroutineScope.launch {
+//                                        pagerState.scrollBy(dx)
+//                                    }
+                                } else {
+                                    verticalScrollChannel.trySend(ScrollEvent.Drag(-dy))
+                                }
+                            },
                             onDragEnd = {
-                                val isHorizontalSwipe = kotlin.math.abs(velocity.x) > kotlin.math.abs(velocity.y)
+                                val isHorizontalSwipe =
+                                    kotlin.math.abs(velocity.x) > kotlin.math.abs(velocity.y)
                                 var targetPage = pagerState.currentPage
                                 if (isHorizontalSwipe) {
                                     targetPage = when {
                                         pagerState.currentPageOffsetFraction > 0.5f -> pagerState.currentPage + 1
                                         pagerState.currentPageOffsetFraction < -0.5f -> pagerState.currentPage - 1
-                                        velocity.x > 2000 && pagerState.currentPageOffsetFraction > 0.1f-> pagerState.currentPage + 1  // Fast swipe right
+                                        velocity.x > 2000 && pagerState.currentPageOffsetFraction > 0.1f -> pagerState.currentPage + 1  // Fast swipe right
                                         velocity.x < -2000 && pagerState.currentPageOffsetFraction < -0.1f -> pagerState.currentPage - 1 // Fast swipe left
                                         else -> pagerState.currentPage
                                     }
@@ -222,27 +271,9 @@ fun HadithDetailContent(
                                     )
                                 }
                             },
-                            onDrag = { change, dragAmount ->
-                                change.consume() // We consume the touch
-                                val deltaTime = (change.uptimeMillis - change.previousUptimeMillis).coerceAtLeast(1L)
-                                val drag = dragAmount * 1000f / deltaTime.toFloat()
-                                velocity = Velocity(drag.x, drag.y)
-                                val (dx, dy) = dragAmount
-
-                                // Determine intention (Locking logic)
-                                val isHorizontalDrag = kotlin.math.abs(dx) > kotlin.math.abs(dy)
-
-                                if (isHorizontalDrag) {
-                                    // --- Move Pager ---
-                                    // We use scrollBy with a coroutine for smooth drag,
-                                    // or dispatchRawDelta for instant "stick to finger"
-//                                    pagerState.dispatchRawDelta(dx);
-                                    coroutineScope.launch {
-                                        pagerState.scrollBy(dx)
-                                    }
-                                } else {
-                                    // --- Move Vertical Text ---
-                                    verticalScrollChannel.trySend(ScrollEvent.Drag(-dy))
+                            onDragCancel = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage)
                                 }
                             }
                         )
