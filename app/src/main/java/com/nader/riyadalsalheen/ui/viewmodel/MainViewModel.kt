@@ -115,14 +115,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun searchHadiths(query: String) {
         searchQuery.value = query
-        if (query.isBlank() && query.length >= MIN_SEARCH_LENGTH) {
+        if (query.isBlank()) {
             searchResults.value = emptyList()
             return
         }
 
         viewModelScope.launch {
             isSearching.value = true
-            searchResults.value = repository.searchHadiths(query.trim())
+            val trimmedQuery = query.trim()
+            val hadithId = trimmedQuery.toIntOrNull()
+
+            searchResults.value = if (hadithId != null) {
+                val hadith = repository.getHadithById(hadithId)
+                hadith?.let { listOf(it) } ?: repository.searchHadiths(trimmedQuery)
+            } else if (trimmedQuery.length >= MIN_SEARCH_LENGTH) {
+                repository.searchHadiths(trimmedQuery)
+            } else {
+                emptyList()
+            }
             isSearching.value = false
         }
     }

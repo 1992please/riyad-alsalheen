@@ -102,7 +102,7 @@ fun SearchScreenContent(
                             .focusRequester(focusRequester),
                         placeholder = {
                             Text(
-                                text = "ابحث عن كلمة أو جملة...",
+                                text = "ابحث عن كلمة أو رقم الحديث...",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -334,8 +334,9 @@ fun SearchResultItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            val isSearchingById = searchQuery.toIntOrNull() == hadith.id
             val fullText = hadith.matn_normal
-            val indexOfSearch = fullText.indexOf(searchQuery)
+            val indexOfSearch = if (isSearchingById) -1 else fullText.indexOf(searchQuery)
             val snippet = if (fullText.length > SNIPPET_LENGTH) {
                 if(indexOfSearch == -1) fullText.substring(0, SNIPPET_LENGTH) + "..."
                 else {
@@ -351,7 +352,7 @@ fun SearchResultItem(
 
             val annotatedText = buildAnnotatedString {
                 append(snippet)
-                if (searchQuery.isNotBlank()) {
+                if (searchQuery.isNotBlank() && !isSearchingById) {
                     val startIndex = snippet.indexOf(searchQuery, ignoreCase = true)
                     if (startIndex != -1) {
                         val endIndex = startIndex + searchQuery.length

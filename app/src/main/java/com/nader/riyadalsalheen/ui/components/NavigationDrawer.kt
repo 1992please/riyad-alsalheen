@@ -157,7 +157,7 @@ fun NavigationDrawer(
                     DrawerMenuItem(
                         text = "العلامات المرجعية",
                         icon = ImageVector.vectorResource(R.drawable.ic_bookmark_24),
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 
