@@ -36,12 +36,10 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
 import com.nader.riyadalsalheen.model.Hadith
-import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 
 @Composable
@@ -77,7 +75,7 @@ fun BookmarksScreenContent(
                 title = {
                     Column {
                         Text(
-                            text = "حول التطبيق",
+                            text = "المفضلة",
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold
@@ -114,8 +112,8 @@ fun BookmarksScreenContent(
                         if (showClearDialog) {
                             AlertDialog(
                                 onDismissRequest = { showClearDialog = false },
-                                title = { Text("مسح جميع المفضلات") },
-                                text = { Text("هل أنت متأكد من مسح جميع الأحاديث المفضلة؟") },
+                                title = { Text("مسح جميع المفضلات", style = MaterialTheme.typography.titleLarge) },
+                                text = { Text("هل أنت متأكد من مسح جميع الأحاديث المفضلة؟", style = MaterialTheme.typography.bodyMedium) },
                                 confirmButton = {
                                     TextButton(
                                         onClick = {
@@ -125,12 +123,12 @@ fun BookmarksScreenContent(
                                             showClearDialog = false
                                         }
                                     ) {
-                                        Text("مسح", color = MaterialTheme.colorScheme.error)
+                                        Text("مسح", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
                                     }
                                 },
                                 dismissButton = {
                                     TextButton(onClick = { showClearDialog = false }) {
-                                        Text("إلغاء")
+                                        Text("إلغاء", style = MaterialTheme.typography.labelLarge)
                                     }
                                 }
                             )
@@ -162,14 +160,13 @@ fun BookmarksScreenContent(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "لا توجد أحاديث مفضلة",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "اضغط على أيقونة المفضلة في صفحة الحديث لإضافته هنا",
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -229,14 +226,12 @@ fun BookmarkItem(
                 ) {
                     Text(
                         text = "الحديث ${hadith.id}",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = hadith.title,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.End,
                         maxLines = 1,
@@ -255,7 +250,7 @@ fun BookmarkItem(
 
                 Text(
                     text = displayText,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     lineHeight = 22.sp,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
@@ -279,8 +274,8 @@ fun BookmarkItem(
     if (showRemoveDialog) {
         AlertDialog(
             onDismissRequest = { showRemoveDialog = false },
-            title = { Text("إزالة من المفضلة") },
-            text = { Text("هل تريد إزالة هذا الحديث من المفضلة؟") },
+            title = { Text("إزالة من المفضلة", style = MaterialTheme.typography.titleLarge) },
+            text = { Text("هل تريد إزالة هذا الحديث من المفضلة؟", style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -288,135 +283,14 @@ fun BookmarkItem(
                         showRemoveDialog = false
                     }
                 ) {
-                    Text("إزالة", color = MaterialTheme.colorScheme.error)
+                    Text("إزالة", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRemoveDialog = false }) {
-                    Text("إلغاء")
+                    Text("إلغاء", style = MaterialTheme.typography.labelLarge)
                 }
             }
-        )
-    }
-}
-
-@Preview(
-    name = "Default Light Theme",
-    showBackground = true,
-    locale = "ar"
-)
-@Preview(
-    name = "Dark Theme",
-    showBackground = true,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-    locale = "ar"
-)
-@Composable
-fun BookmarksContentEmptyPreview() {
-    RiyadalsalheenTheme {
-        BookmarksScreenContent(
-            bookmarks = emptyList()
-        )
-    }
-}
-
-@Preview(
-    name = "Default Light Theme",
-    showBackground = true,
-    locale = "ar"
-)
-@Preview(
-    name = "Dark Theme",
-    showBackground = true,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-    locale = "ar"
-)
-@Composable
-fun BookmarksContentPreview() {
-    RiyadalsalheenTheme {
-        BookmarksScreenContent(
-            bookmarks = listOf(
-                Hadith(
-                    id = 1,
-                    doorId = 1,
-                    bookId = 1,
-                    title = "إنما الأعمال بالنيات",
-                    matn = "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى",
-                    sharh = "هذا الحديث يبين أن صحة العمل وفساده، وكونه مقبولاً أو مردوداً، إنما يتوقف على النية. فمن نوى خيراً أثيب، ومن نوى شراً عوقب، ومن لم ينو شيئاً فلا له ولا عليه."
-                ),
-                Hadith(
-                    id = 2,
-                    doorId = 2,
-                    bookId = 1,
-                    title = "الإسلام والإيمان والإحسان",
-                    matn = "الإسلام أن تشهد أن لا إله إلا الله وأن محمداً رسول الله، وتقيم الصلاة، وتؤتي الزكاة، وتصوم رمضان، وتحج البيت إن استطعت إليه سبيلاً",
-                    sharh = "هذا الحديث يعرّف الإسلام بأركانه الخمسة الأساسية، وهي الشهادتان والصلاة والزكاة والصوم والحج. وهذه الأركان هي الأسس التي يقوم عليها دين الإسلام."
-                ),
-                Hadith(
-                    id = 3,
-                    doorId = 3,
-                    bookId = 2,
-                    title = "طلب العلم",
-                    matn = "اطلبوا العلم من المهد إلى اللحد",
-                    sharh = "يحث هذا الحديث على أهمية طلب العلم في جميع مراحل الحياة، من الطفولة إلى الشيخوخة. فالعلم نور يهدي الإنسان في دنياه وآخرته، ولا يجوز التوقف عن طلبه في أي مرحلة من العمر."
-                ),
-                Hadith(
-                    id = 4,
-                    doorId = 4,
-                    bookId = 2,
-                    title = "بر الوالدين",
-                    matn = "الوالدان أوسط أبواب الجنة، فإن شئت فأضع ذلك الباب أو احفظه",
-                    sharh = "يبين هذا الحديث عظم مكانة الوالدين في الإسلام، وأن برهما طريق إلى الجنة. فمن أراد دخول الجنة فليبر والديه، ومن عقهما فقد أضاع فرصة عظيمة للفوز برضا الله."
-                ),
-                Hadith(
-                    id = 5,
-                    doorId = 5,
-                    bookId = 3,
-                    title = "الصدقة",
-                    matn = "الصدقة تطفئ الخطيئة كما يطفئ الماء النار",
-                    sharh = "يشبه هذا الحديث الصدقة بالماء الذي يطفئ النار، فكما أن الماء يقضي على النار، فإن الصدقة تمحو الذنوب والخطايا. وهذا يدل على عظم أجر الصدقة وأثرها في تطهير النفس."
-                ),
-                Hadith(
-                    id = 6,
-                    doorId = 6,
-                    bookId = 3,
-                    title = "الجار",
-                    matn = "ما زال جبريل يوصيني بالجار حتى ظننت أنه سيورثه",
-                    sharh = "يؤكد هذا الحديث على أهمية حسن الجوار وحقوق الجار في الإسلام. فقد كان الوصاة بالجار من الأمور المؤكدة حتى أن الرسول ظن أن الجار سيجعل له حق في الميراث."
-                ),
-                Hadith(
-                    id = 7,
-                    doorId = 7,
-                    bookId = 4,
-                    title = "الصبر",
-                    matn = "الصبر نصف الإيمان، والوضوء نصف الإيمان، والحمد لله تملأ الميزان",
-                    sharh = "يبين هذا الحديث أن الصبر يمثل جزءاً كبيراً من الإيمان، فالمؤمن الصابر على البلاء والمحن يكون إيمانه أقوى. كما يؤكد على أهمية الطهارة والحمد في حياة المسلم."
-                ),
-                Hadith(
-                    id = 8,
-                    doorId = 8,
-                    bookId = 4,
-                    title = "العفو والصفح",
-                    matn = "ما نقصت صدقة من مال، وما زاد الله عبداً بعفو إلا عزاً",
-                    sharh = "يوضح هذا الحديث أن العفو عن الناس لا يقلل من قدر الإنسان، بل يزيده عزة ومكانة عند الله وعند الناس. فالعفو خلق كريم يرفع صاحبه درجات."
-                ),
-                Hadith(
-                    id = 9,
-                    doorId = 9,
-                    bookId = 5,
-                    title = "الكلمة الطيبة",
-                    matn = "الكلمة الطيبة صدقة",
-                    sharh = "يعلمنا هذا الحديث أن مجرد النطق بالكلمة الحسنة الطيبة يعتبر صدقة يؤجر عليها المسلم. وهذا يشجع على حسن الكلام ولطف المعاملة مع الآخرين."
-                ),
-                Hadith(
-                    id = 10,
-                    doorId = 10,
-                    bookId = 5,
-                    title = "التواضع",
-                    matn = "وما تواضع أحد لله إلا رفعه الله",
-                    sharh = "يبين هذا الحديث أن التواضع لله تعالى سبب في رفعة الدرجات. فمن تواضع وترك الكبر والغرور، رفعه الله في الدنيا والآخرة، لأن التواضع من صفات المؤمنين الصالحين."
-                )
-            )
         )
     }
 }

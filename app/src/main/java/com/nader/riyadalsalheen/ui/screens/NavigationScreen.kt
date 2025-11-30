@@ -72,7 +72,7 @@ fun NavigationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("التنقل بين الأبواب") },
+                title = { Text("التنقل بين الأبواب", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBackPressed) {
                         Icon(

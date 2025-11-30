@@ -123,12 +123,19 @@ def clean_html_text(html_content, textType):
     # Join the parts with a single newline, which creates the desired paragraph structure
     return final_text
 
-def remove_tashkeel(text):
+def clean_and_normalize_text(text):
     if not text:
         return ""
-    # Regex to match all Arabic diacritics
+    
+    marker_pattern = re.compile(r'<[^>]*>')
+    text = re.sub(marker_pattern, ' ', text) # Replace with space to prevent word concatenation
+
     tashkeel_pattern = re.compile(r'[\u064B-\u0652\u0670]')
-    return re.sub(tashkeel_pattern, '', text)
+    text = re.sub(tashkeel_pattern, '', text)
+
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
 
 def read_hadith_count(conn):
     cursor = conn.cursor()
@@ -215,7 +222,7 @@ def test_process_and_print_hadith(conn):
     hadith_id, original_hadith, original_sharh = all_hadiths[1]
     cleaned_hadith = clean_html_text(original_hadith, "hadith")
     cleaned_sharh = clean_html_text(original_sharh, "sharh")
-    hadith_normal = remove_tashkeel(cleaned_hadith)
+    hadith_normal = clean_and_normalize_text(cleaned_hadith)
 
     log_print(f"""
 {original_hadith}
@@ -248,7 +255,7 @@ def process_and_update_hadiths(conn):
         cleaned_sharh = clean_html_text(original_sharh, 'sharh')
         
         # Create the search-friendly version without tashkeel
-        hadith_normal = remove_tashkeel(cleaned_hadith)
+        hadith_normal = clean_and_normalize_text(cleaned_hadith)
 
         # Update the row in the database
         update_query = """

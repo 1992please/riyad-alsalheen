@@ -1,6 +1,7 @@
 package com.nader.riyadalsalheen.data.repository
 
 import android.content.Context
+import android.database.Cursor
 import com.nader.riyadalsalheen.data.DatabaseHelper
 import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
@@ -21,6 +22,8 @@ class RiyadSalheenRepository(context: Context) {
         private const val COLUMN_TITLE = "title"
         private const val COLUMN_HADITH = "hadith"
         private const val COLUMN_SHARH = "sharh"
+        private const val COLUMN_HADITH_NORMAL = "hadith_normal"
+
     }
 
     fun getAllBooks(): List<Book> {
@@ -52,6 +55,18 @@ class RiyadSalheenRepository(context: Context) {
         return doors
     }
 
+    private fun getHadithFromCursor(cursor: Cursor) : Hadith {
+        return Hadith(
+            id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+            doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
+            bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
+            title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
+            matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
+            sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH)),
+            matn_normal = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH_NORMAL))
+        )
+    }
+
     // TODO return hadith detail instead of Hadith
     fun getHadithsByDoor(doorId: Int): List<Hadith> {
         val hadiths = mutableListOf<Hadith>()
@@ -60,14 +75,7 @@ class RiyadSalheenRepository(context: Context) {
 
         database.rawQuery(query, selectionArgs).use { cursor ->
             while (cursor.moveToNext()) {
-                hadiths.add(Hadith(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                    doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
-                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
-                    sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
-                ))
+                hadiths.add(getHadithFromCursor(cursor))
             }
         }
         return hadiths
@@ -91,14 +99,7 @@ class RiyadSalheenRepository(context: Context) {
 
         database.rawQuery(query, selectionArgs).use { cursor ->
             if (cursor.moveToFirst()) {
-                return Hadith(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                    doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
-                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
-                    sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
-                )
+                return getHadithFromCursor(cursor)
             }
         }
         return null
@@ -115,16 +116,7 @@ class RiyadSalheenRepository(context: Context) {
 
         database.rawQuery(query, selectionArgs).use { cursor ->
             while (cursor.moveToNext()) {
-                hadiths.add(
-                    Hadith(
-                        id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                        doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
-                        bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                        title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                        matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
-                        sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
-                    )
-                )
+                hadiths.add(getHadithFromCursor(cursor))
             }
         }
         return hadiths
@@ -134,25 +126,16 @@ class RiyadSalheenRepository(context: Context) {
         val hadiths = mutableListOf<Hadith>()
         val query = """
             SELECT * FROM $TABLE_HADITHS 
-            WHERE $COLUMN_TITLE LIKE ? 
-            OR $COLUMN_HADITH LIKE ? 
-            OR $COLUMN_SHARH LIKE ?
+            WHERE $COLUMN_HADITH_NORMAL LIKE ?
             ORDER BY $COLUMN_ID ASC
             LIMIT 100
         """
         val searchPattern = "%$searchQuery%"
-        val selectionArgs = arrayOf(searchPattern, searchPattern, searchPattern)
+        val selectionArgs = arrayOf(searchPattern)
 
         database.rawQuery(query, selectionArgs).use { cursor ->
             while (cursor.moveToNext()) {
-                hadiths.add(Hadith(
-                    id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                    doorId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_DOOR_ID)),
-                    bookId = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_BOOK_ID)),
-                    title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    matn = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_HADITH)),
-                    sharh = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_SHARH))
-                ))
+                hadiths.add(getHadithFromCursor(cursor))
             }
         }
         return hadiths

@@ -8,10 +8,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+
+const val DEFAULT_FONT_SIZE = 20f
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -47,7 +48,7 @@ class AppPreferences(private val context: Context) {
     // Get font size
     val fontSize: Flow<Float> = context.dataStore.data
         .map { preferences ->
-            preferences[FONT_SIZE] ?: 18f
+            preferences[FONT_SIZE] ?: DEFAULT_FONT_SIZE
         }
 
     suspend fun toggleBookmark(hadithId: Int) {

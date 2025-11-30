@@ -3,6 +3,7 @@ package com.nader.riyadalsalheen.ui.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,7 +20,7 @@ fun FontSizeDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("حجم الخط") },
+        title = { Text("حجم الخط", style = MaterialTheme.typography.titleLarge) },
         text = {
             Column {
                 Slider(
@@ -30,6 +31,7 @@ fun FontSizeDialog(
                 )
                 Text(
                     text = "الحجم: ${fontSize.toInt()}",
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -37,7 +39,7 @@ fun FontSizeDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("حسناً")
+                Text("حسناً", style = MaterialTheme.typography.labelLarge)
             }
         }
     )

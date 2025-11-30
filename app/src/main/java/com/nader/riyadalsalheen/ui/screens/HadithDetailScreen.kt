@@ -252,8 +252,8 @@ fun HadithDetailContent(
                                 var targetPage = pagerState.currentPage
                                 if (isHorizontalSwipe) {
                                     targetPage = when {
-                                        pagerState.currentPageOffsetFraction > 0.5f -> pagerState.currentPage + 1
-                                        pagerState.currentPageOffsetFraction < -0.5f -> pagerState.currentPage - 1
+                                        pagerState.currentPageOffsetFraction > 0.3f -> pagerState.currentPage + 1
+                                        pagerState.currentPageOffsetFraction < -0.3f -> pagerState.currentPage - 1
                                         velocity.x > 2000 && pagerState.currentPageOffsetFraction > 0.1f -> pagerState.currentPage + 1  // Fast swipe right
                                         velocity.x < -2000 && pagerState.currentPageOffsetFraction < -0.1f -> pagerState.currentPage - 1 // Fast swipe left
                                         else -> pagerState.currentPage

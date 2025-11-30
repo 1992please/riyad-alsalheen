@@ -1,6 +1,5 @@
 package com.nader.riyadalsalheen.ui.screens
 
-import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,27 +30,28 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nader.riyadalsalheen.R
 import com.nader.riyadalsalheen.model.Hadith
-import com.nader.riyadalsalheen.ui.theme.RiyadalsalheenTheme
+import com.nader.riyadalsalheen.ui.viewmodel.MIN_SEARCH_LENGTH
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
+
+private const val SNIPPET_LENGTH = 200
 
 @Composable
 fun SearchScreen(
@@ -60,6 +61,7 @@ fun SearchScreen(
 ) {
 
     SearchScreenContent(
+        searchQuery = viewModel.searchQuery.value,
         searchResults = viewModel.searchResults.value,
         isSearching = viewModel.isSearching.value,
         onSearch = { query ->
@@ -73,13 +75,13 @@ fun SearchScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreenContent(
+    searchQuery: String,
     searchResults: List<Hadith> = emptyList(),
     isSearching: Boolean = false,
     onSearch: (String) -> Unit = {},
     onHadithSelected: (Int) -> Unit = {},
     onBackPressed: () -> Unit = {}
 ) {
-    var searchQuery by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -91,20 +93,17 @@ fun SearchScreenContent(
         topBar = {
             TopAppBar(
                 title = {
-                    // Search Bar
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { query ->
-                            searchQuery = query
-                            onSearch(if (query.length >= 3) query else "")
-                        },
+                        keyboardOptions = KeyboardOptions(hintLocales = LocaleList("ar")),
+                        onValueChange = onSearch,
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
                         placeholder = {
                             Text(
                                 text = "ابحث عن كلمة أو جملة...",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
@@ -116,16 +115,24 @@ fun SearchScreenContent(
                             )
                         },
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(
-                                    onClick = {
-                                        onSearch("")
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(R.drawable.ic_clear_24),
-                                        contentDescription = "مسح"
+                            when {
+                                isSearching -> {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
                                     )
+                                }
+                                searchQuery.isNotEmpty() -> {
+                                    IconButton(
+                                        onClick = {
+                                            onSearch("")
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = ImageVector.vectorResource(R.drawable.ic_clear_24),
+                                            contentDescription = "مسح"
+                                        )
+                                    }
                                 }
                             }
                         },
@@ -135,7 +142,7 @@ fun SearchScreenContent(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
+                        textStyle = MaterialTheme.typography.bodyLarge
                     )
                 },
                 navigationIcon = {
@@ -153,13 +160,12 @@ fun SearchScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-        ){
-            // Search Info
-            if (searchQuery.isNotEmpty() && searchQuery.length < 3) {
+        ) {
+            if (searchQuery.isNotEmpty() && searchQuery.length < MIN_SEARCH_LENGTH) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(start = 16.dp, end = 16.dp, top = 4.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
                     )
@@ -177,39 +183,22 @@ fun SearchScreenContent(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "اكتب ٣ أحرف على الأقل للبحث",
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     }
                 }
             }
 
-            // Loading indicator
-            if (isSearching) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            // Search Results
             when {
-                // search edit box is empty
                 searchQuery.isEmpty() -> {
-                    // Initial state - show search tips
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
                                 contentDescription = null,
@@ -219,31 +208,28 @@ fun SearchScreenContent(
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "ابحث في رياض الصالحين",
-                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "يمكنك البحث في نص الحديث أو الشرح",
-                                fontSize = 14.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center
                             )
                         }
                     }
                 }
-                // No results found
-                searchResults.isEmpty() && searchQuery.length >= 3 && !isSearching -> {
-                    // No results found
+
+                searchResults.isEmpty() && searchQuery.length >= MIN_SEARCH_LENGTH && !isSearching -> {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_search_off_24),
                                 contentDescription = null,
@@ -253,19 +239,19 @@ fun SearchScreenContent(
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "لم يتم العثور على نتائج",
-                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "جرب البحث بكلمات أخرى",
-                                fontSize = 14.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
                     }
                 }
-                // Show search results
+
                 else -> {
                     Column {
                         if (searchResults.isNotEmpty()) {
@@ -274,13 +260,13 @@ fun SearchScreenContent(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 8.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                                 )
                             ) {
                                 Text(
                                     text = "عدد النتائج: ${searchResults.size}",
                                     modifier = Modifier.padding(12.dp),
-                                    fontSize = 14.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             }
@@ -294,6 +280,7 @@ fun SearchScreenContent(
                             items(searchResults) { hadith ->
                                 SearchResultItem(
                                     hadith = hadith,
+                                    searchQuery = searchQuery,
                                     onClick = { onHadithSelected(hadith.id) }
                                 )
                             }
@@ -308,6 +295,7 @@ fun SearchScreenContent(
 @Composable
 fun SearchResultItem(
     hadith: Hadith,
+    searchQuery: String,
     onClick: () -> Unit
 ) {
     Card(
@@ -328,13 +316,13 @@ fun SearchResultItem(
             ) {
                 Text(
                     text = "الحديث ${hadith.id}",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
                 if (hadith.title.isNotBlank()) {
                     Text(
                         text = hadith.title,
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.End,
@@ -346,143 +334,48 @@ fun SearchResultItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Highlight search query in text
-            val cleanHadithText = hadith.matn.replace(Regex("<[^>]*>"), "")
-            val displayText = if (cleanHadithText.length > 200) {
-                cleanHadithText.substring(0, 200) + "..."
+            val fullText = hadith.matn_normal
+            val indexOfSearch = fullText.indexOf(searchQuery)
+            val snippet = if (fullText.length > SNIPPET_LENGTH) {
+                if(indexOfSearch == -1) fullText.substring(0, SNIPPET_LENGTH) + "..."
+                else {
+                    val startIndex = (indexOfSearch - SNIPPET_LENGTH / 2).coerceAtLeast(0)
+                    val endIndex = (indexOfSearch + SNIPPET_LENGTH / 2).coerceIn(0,fullText.length)
+                    val startEllipses = if(startIndex == 0) "" else "..."
+                    val endEllipses = if(endIndex == fullText.length) "" else "..."
+                    startEllipses + fullText.substring(startIndex, endIndex) + endEllipses
+                }
             } else {
-                cleanHadithText
+                fullText
+            }
+
+            val annotatedText = buildAnnotatedString {
+                append(snippet)
+                if (searchQuery.isNotBlank()) {
+                    val startIndex = snippet.indexOf(searchQuery, ignoreCase = true)
+                    if (startIndex != -1) {
+                        val endIndex = startIndex + searchQuery.length
+                        addStyle(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                background = MaterialTheme.colorScheme.primaryContainer,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            start = startIndex,
+                            end = endIndex
+                        )
+                    }
+                }
             }
 
             Text(
-                text = displayText,
-                fontSize = 14.sp,
+                text = annotatedText,
+                style = MaterialTheme.typography.bodyMedium,
                 lineHeight = 22.sp,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
-}
-
-
-@Preview(
-    name = "Default Light Theme",
-    showBackground = true,
-    locale = "ar"
-)
-@Preview(
-    name = "Dark Theme",
-    showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-    locale = "ar"
-)
-@Composable
-fun SearchScreenEmptyPreview() {
-    RiyadalsalheenTheme {
-        SearchScreenContent()
-    }
-}
-
-@Preview(
-    name = "Default Light Theme",
-    showBackground = true,
-    locale = "ar"
-)
-@Preview(
-    name = "Dark Theme",
-    showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-    locale = "ar"
-)
-@Composable
-fun SearchScreenPreview() {
-    RiyadalsalheenTheme {
-        SearchScreenContent(
-            searchResults = listOf(
-                Hadith(
-                    id = 1,
-                    doorId = 1,
-                    bookId = 1,
-                    title = "إنما الأعمال بالنيات",
-                    matn = "إنما الأعمال بالنيات وإنما لكل امرئ ما نوى",
-                    sharh = "هذا الحديث يبين أن صحة العمل وفساده، وكونه مقبولاً أو مردوداً، إنما يتوقف على النية. فمن نوى خيراً أثيب، ومن نوى شراً عوقب، ومن لم ينو شيئاً فلا له ولا عليه."
-                ),
-                Hadith(
-                    id = 2,
-                    doorId = 2,
-                    bookId = 1,
-                    title = "الإسلام والإيمان والإحسان",
-                    matn = "الإسلام أن تشهد أن لا إله إلا الله وأن محمداً رسول الله، وتقيم الصلاة، وتؤتي الزكاة، وتصوم رمضان، وتحج البيت إن استطعت إليه سبيلاً",
-                    sharh = "هذا الحديث يعرّف الإسلام بأركانه الخمسة الأساسية، وهي الشهادتان والصلاة والزكاة والصوم والحج. وهذه الأركان هي الأسس التي يقوم عليها دين الإسلام."
-                ),
-                Hadith(
-                    id = 3,
-                    doorId = 3,
-                    bookId = 2,
-                    title = "طلب العلم",
-                    matn = "اطلبوا العلم من المهد إلى اللحد",
-                    sharh = "يحث هذا الحديث على أهمية طلب العلم في جميع مراحل الحياة، من الطفولة إلى الشيخوخة. فالعلم نور يهدي الإنسان في دنياه وآخرته، ولا يجوز التوقف عن طلبه في أي مرحلة من العمر."
-                ),
-                Hadith(
-                    id = 4,
-                    doorId = 4,
-                    bookId = 2,
-                    title = "بر الوالدين",
-                    matn = "الوالدان أوسط أبواب الجنة، فإن شئت فأضع ذلك الباب أو احفظه",
-                    sharh = "يبين هذا الحديث عظم مكانة الوالدين في الإسلام، وأن برهما طريق إلى الجنة. فمن أراد دخول الجنة فليبر والديه، ومن عقهما فقد أضاع فرصة عظيمة للفوز برضا الله."
-                ),
-                Hadith(
-                    id = 5,
-                    doorId = 5,
-                    bookId = 3,
-                    title = "الصدقة",
-                    matn = "الصدقة تطفئ الخطيئة كما يطفئ الماء النار",
-                    sharh = "يشبه هذا الحديث الصدقة بالماء الذي يطفئ النار، فكما أن الماء يقضي على النار، فإن الصدقة تمحو الذنوب والخطايا. وهذا يدل على عظم أجر الصدقة وأثرها في تطهير النفس."
-                ),
-                Hadith(
-                    id = 6,
-                    doorId = 6,
-                    bookId = 3,
-                    title = "الجار",
-                    matn = "ما زال جبريل يوصيني بالجار حتى ظننت أنه سيورثه",
-                    sharh = "يؤكد هذا الحديث على أهمية حسن الجوار وحقوق الجار في الإسلام. فقد كان الوصاة بالجار من الأمور المؤكدة حتى أن الرسول ظن أن الجار سيجعل له حق في الميراث."
-                ),
-                Hadith(
-                    id = 7,
-                    doorId = 7,
-                    bookId = 4,
-                    title = "الصبر",
-                    matn = "الصبر نصف الإيمان، والوضوء نصف الإيمان، والحمد لله تملأ الميزان",
-                    sharh = "يبين هذا الحديث أن الصبر يمثل جزءاً كبيراً من الإيمان، فالمؤمن الصابر على البلاء والمحن يكون إيمانه أقوى. كما يؤكد على أهمية الطهارة والحمد في حياة المسلم."
-                ),
-                Hadith(
-                    id = 8,
-                    doorId = 8,
-                    bookId = 4,
-                    title = "العفو والصفح",
-                    matn = "ما نقصت صدقة من مال، وما زاد الله عبداً بعفو إلا عزاً",
-                    sharh = "يوضح هذا الحديث أن العفو عن الناس لا يقلل من قدر الإنسان، بل يزيده عزة ومكانة عند الله وعند الناس. فالعفو خلق كريم يرفع صاحبه درجات."
-                ),
-                Hadith(
-                    id = 9,
-                    doorId = 9,
-                    bookId = 5,
-                    title = "الكلمة الطيبة",
-                    matn = "الكلمة الطيبة صدقة",
-                    sharh = "يعلمنا هذا الحديث أن مجرد النطق بالكلمة الحسنة الطيبة يعتبر صدقة يؤجر عليها المسلم. وهذا يشجع على حسن الكلام ولطف المعاملة مع الآخرين."
-                ),
-                Hadith(
-                    id = 10,
-                    doorId = 10,
-                    bookId = 5,
-                    title = "التواضع",
-                    matn = "وما تواضع أحد لله إلا رفعه الله",
-                    sharh = "يبين هذا الحديث أن التواضع لله تعالى سبب في رفعة الدرجات. فمن تواضع وترك الكبر والغرور، رفعه الله في الدنيا والآخرة، لأن التواضع من صفات المؤمنين الصالحين."
-                )
-            ),
-            isSearching = false,
-        )
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nader.riyadalsalheen.data.AppPreferences
+import com.nader.riyadalsalheen.data.DEFAULT_FONT_SIZE
 import com.nader.riyadalsalheen.data.repository.RiyadSalheenRepository
 import com.nader.riyadalsalheen.model.Book
 import com.nader.riyadalsalheen.model.Door
@@ -14,6 +15,8 @@ import com.nader.riyadalsalheen.model.Hadith
 import com.nader.riyadalsalheen.model.HadithDetails
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+const val MIN_SEARCH_LENGTH = 3
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = RiyadSalheenRepository(application)
@@ -29,8 +32,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     var currentHadithId = 0
     val searchResults = mutableStateOf(emptyList<Hadith>())
+    val searchQuery = mutableStateOf("")
     val systemTheme = mutableStateOf(true)
-    val fontSize = mutableFloatStateOf(18f)
+    val fontSize = mutableFloatStateOf(DEFAULT_FONT_SIZE)
     val bookmarks = mutableStateOf(emptyList<Hadith>())
 
     // Loading states
@@ -110,7 +114,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun searchHadiths(query: String) {
-        if (query.isBlank() && query.length >= 3) {
+        searchQuery.value = query
+        if (query.isBlank() && query.length >= MIN_SEARCH_LENGTH) {
             searchResults.value = emptyList()
             return
         }
