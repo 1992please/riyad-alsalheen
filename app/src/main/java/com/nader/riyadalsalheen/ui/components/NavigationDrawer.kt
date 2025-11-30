@@ -42,7 +42,6 @@ fun NavigationDrawer(
     onNavigateToHadith: (Int) -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToNavigation: () -> Unit = {},
-    onNavigateToSearch: () -> Unit = {},
     onFontSizeChange: () -> Unit = {},
     onToggleDarkMode: () -> Unit = {},
     onClose: () -> Unit = {}
@@ -120,18 +119,6 @@ fun NavigationDrawer(
                     .fillMaxWidth(),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                item {
-                    DrawerMenuItem(
-                        text = "البحث",
-                        icon = ImageVector.vectorResource(R.drawable.ic_search_24),
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable {
-                            onNavigateToSearch()
-                            onClose()
-                        }
-                    )
-                }
-
                 item {
                     DrawerMenuItem(
                         text = "التنقل بين الأبواب",
@@ -305,7 +292,7 @@ fun DrawerMenuItem(
             text = text,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = fontWeight,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }

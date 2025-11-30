@@ -105,7 +105,8 @@ data class HadithDetailUiState(
 fun HadithDetailScreen(
     initHadithID: Int,
     viewModel: MainViewModel,
-    onOpenDrawer: () -> Unit
+    onOpenDrawer: () -> Unit,
+	onNavigateToSearch: () -> Unit,
 ) {
     val uiState = HadithDetailUiState(
         books = viewModel.books,
@@ -121,7 +122,8 @@ fun HadithDetailScreen(
         getHadith = { viewModel.cachedHadiths[it] },
         onOpenDrawer = onOpenDrawer,
         loadAndGetHadith = { viewModel.loadAndGetHadith(it) },
-        onToggleBookmark = { viewModel.toggleBookmark(it) }
+        onToggleBookmark = { viewModel.toggleBookmark(it) },
+		onNavigateToSearch = onNavigateToSearch
     )
 }
 
@@ -132,6 +134,7 @@ fun HadithDetailContent(
     getHadith: (Int) -> HadithDetails?,
     loadAndGetHadith: (Int) -> HadithDetails?,
     onOpenDrawer: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     onToggleBookmark: (Int) -> Unit = {}
 ) {
     // Pager state for swipe navigation
@@ -170,6 +173,7 @@ fun HadithDetailContent(
                     currentHadith = currentHadith,
                     isBookmarked = isBookmarked,
                     onMenuClick = onOpenDrawer,
+                    onSearchClick = onNavigateToSearch,
                     onBookmarkClick = {
                         onToggleBookmark(currentHadith.hadith.id)
                         coroutineScope.launch {
@@ -239,9 +243,6 @@ fun HadithDetailContent(
 
                                 if (isHorizontalDrag) {
                                     pagerState.dispatchRawDelta(dx)
-//                                    coroutineScope.launch {
-//                                        pagerState.scrollBy(dx)
-//                                    }
                                 } else {
                                     verticalScrollChannel.trySend(ScrollEvent.Drag(-dy))
                                 }
@@ -289,6 +290,7 @@ fun TopAppBarContent(
     currentHadith: HadithDetails,
     isBookmarked: Boolean,
     onMenuClick: () -> Unit,
+    onSearchClick: () -> Unit,
     onBookmarkClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
@@ -343,6 +345,14 @@ fun TopAppBarContent(
                 Icon(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_share_24),
                     contentDescription = "Share",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            IconButton(onClick = onSearchClick) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_search_24),
+                    contentDescription = "Search",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

@@ -72,7 +72,6 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 onNavigateToAbout = { navController.navigate("about") },
                 onNavigateToBookmarks = { navController.navigate("bookmarks") },
                 onNavigateToNavigation = { navController.navigate("navigation") },
-                onNavigateToSearch = { navController.navigate("search") },
                 onNavigateToHadith = {
                     navController.navigate("hadithDetail/$it")
                 },
@@ -93,7 +92,8 @@ fun MainActivityComposable(viewModel: MainViewModel) {
                 HadithDetailScreen(
                     initHadithID = hadithId,
                     viewModel = viewModel,
-                    onOpenDrawer = { coroutineScope.launch { drawerState.open() } }
+                    onOpenDrawer = { coroutineScope.launch { drawerState.open() } },
+                    onNavigateToSearch = { navController.navigate("search") }
                 )
             }
             composable("search") {
