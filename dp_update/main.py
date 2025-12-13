@@ -5,9 +5,119 @@ import shutil
 from collections import defaultdict
 import json
 
+# ==========================================
+# CONFIGURATION
+# ==========================================
+DB_SOURCE = "riyad_salheen.db"
+DB_TARGET = "..\\app\\src\\main\\assets\\databases\\riyad_salheen.db"
+
+# ==========================================
+# LOGGING AND UTILS
+# ==========================================
+
 def log_print(*args, **kwargs):
     with open("hadith_processing_log.txt", 'w', encoding='utf-8') as log_file:
         print(*args, **kwargs, file=log_file)
+
+def add_column_if_not_exists(conn, table_name, column_name, column_type):
+    cursor = conn.cursor()
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = [info[1] for info in cursor.fetchall()]
+    if column_name not in columns:
+        print(f"Column '{column_name}' not found in '{table_name}'. Adding it...")
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+        print(f"Column '{column_name}' added successfully.")
+    else:
+        print(f"Column '{column_name}' already exists in '{table_name}'.")
+
+def read_hadith_count(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM hadiths")
+    count = cursor.fetchone()[0]
+    return count
+
+def find_all_colors_used(conn):
+    cursor = conn.cursor()
+
+    # 1. Add the new column for search-friendly text
+    add_column_if_not_exists(conn, "hadiths", "hadith_normal", "TEXT")
+
+    # 2. Fetch all hadiths that need processing
+    cursor.execute("SELECT id, hadith, sharh FROM hadiths")
+    all_hadiths = cursor.fetchall()
+    
+    total_hadiths = len(all_hadiths)
+    print(f"\nFound {total_hadiths} hadiths to process.") 
+
+    hadith_color_map = defaultdict(list)
+    sharh_color_map = defaultdict(list)
+
+    # Regex to find rgb(...) colors within a style attribute
+    rgb_pattern = re.compile(
+        r'(color:rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))',
+        re.IGNORECASE
+    )
+
+    # Process each HTML string in the input list
+    for i, row in enumerate(all_hadiths):
+        hadith_id, original_hadith, original_sharh = row
+        print(f"Processing hadith {i + 1}/{total_hadiths} (ID: {hadith_id})... Done.")
+
+        # Parse the HTML
+        soup = BeautifulSoup(original_hadith, 'html.parser')
+        for tag in soup.find_all('span', style=rgb_pattern):
+            style_str = tag.get('style')
+            found_colors = rgb_pattern.findall(style_str)
+            if found_colors:
+                content = tag.get_text(strip=True)
+                if content:
+                    for color in found_colors:
+                        if not hadith_color_map[color] or len(hadith_color_map[color]) < 20:
+                            hadith_color_map[color].append(content)
+
+        soup = BeautifulSoup(original_sharh, 'html.parser')
+        for tag in soup.find_all('span', style=rgb_pattern):
+            style_str = tag.get('style')
+            found_colors = rgb_pattern.findall(style_str)
+            if found_colors:
+                content = tag.get_text(strip=True)
+                if content:
+                    for color in found_colors:
+                        if not sharh_color_map[color] or len(sharh_color_map[color]) < 20:
+                            sharh_color_map[color].append(content)
+
+    log_print(f"hadith_color_map:\n{json.dumps(hadith_color_map, indent = 4, ensure_ascii=False)}\nsharh_color_map:\n{json.dumps(sharh_color_map, indent = 4, ensure_ascii=False)}")
+  
+def test_process_and_print_hadith(conn):
+    cursor = conn.cursor()
+
+    # 1. Add the new column for search-friendly text
+    add_column_if_not_exists(conn, "hadiths", "hadith_normal", "TEXT")
+
+    # 2. Fetch all hadiths that need processing
+    cursor.execute("SELECT id, hadith, sharh FROM hadiths")
+    all_hadiths = cursor.fetchall()
+    
+    total_hadiths = len(all_hadiths)
+    print(f"\nFound {total_hadiths} hadiths to process.")
+
+    hadith_id, original_hadith, original_sharh = all_hadiths[1]
+    cleaned_hadith = clean_html_text(original_hadith, "hadith")
+    cleaned_sharh = clean_html_text(original_sharh, "sharh")
+    hadith_normal = clean_and_normalize_text(cleaned_hadith)
+
+    log_print(f"""
+{original_hadith}
+-----------------------------------------------------------------------------------------------------------
+{cleaned_hadith}
+-----------------------------------------------------------------------------------------------------------
+{original_sharh}
+-----------------------------------------------------------------------------------------------------------
+{cleaned_sharh}""")
+
+# ==========================================
+# TEXT PROCESSING LOGIC
+# ==========================================
 
 def clean_html_text(html_content, textType):
     if not html_content:
@@ -137,102 +247,129 @@ def clean_and_normalize_text(text):
 
     return text
 
-def read_hadith_count(conn):
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM hadiths")
-    count = cursor.fetchone()[0]
-    return count
+# ==========================================
+# EXPORT / IMPORT / INSERT
+# ==========================================
 
-def add_column_if_not_exists(conn, table_name, column_name, column_type):
+def export_hadith_to_json(conn, hadith_id, output_filename="hadith_edit.json"):
+    """
+    Fetches a single hadith by ID and saves it to a JSON file.
+    """
+    conn.row_factory = sqlite3.Row # Access columns by name
     cursor = conn.cursor()
-    cursor.execute(f"PRAGMA table_info({table_name})")
-    columns = [info[1] for info in cursor.fetchall()]
-    if column_name not in columns:
-        print(f"Column '{column_name}' not found in '{table_name}'. Adding it...")
-        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
-        print(f"Column '{column_name}' added successfully.")
+    cursor.execute("SELECT * FROM hadiths WHERE id = ?", (hadith_id,))
+    row = cursor.fetchone()
+    
+    if row:
+        data = dict(row)
+        with open(output_filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        print(f"Hadith ID {hadith_id} exported to '{output_filename}'")
     else:
-        print(f"Column '{column_name}' already exists in '{table_name}'.")
+        print(f"Hadith ID {hadith_id} not found.")
 
-def find_all_colors_used(conn):
-    cursor = conn.cursor()
+def update_hadith_from_json(conn, json_filename):
+    """
+    Reads a JSON file, processes the text (cleaning/normalization),
+    and UPDATES the existing record with the matching ID.
+    """
+    if not os.path.exists(json_filename):
+        print(f"File {json_filename} not found.")
+        return
 
-    # 1. Add the new column for search-friendly text
-    add_column_if_not_exists(conn, "hadiths", "hadith_normal", "TEXT")
+    with open(json_filename, 'r', encoding='utf-8') as f:
+        data = json.load(f)
 
-    # 2. Fetch all hadiths that need processing
-    cursor.execute("SELECT id, hadith, sharh FROM hadiths")
-    all_hadiths = cursor.fetchall()
+    hadith_id = data.get('id')
+    raw_hadith = data.get('hadith', '')
+    raw_sharh = data.get('sharh', '')
     
-    total_hadiths = len(all_hadiths)
-    print(f"\nFound {total_hadiths} hadiths to process.") 
-
-    hadith_color_map = defaultdict(list)
-    sharh_color_map = defaultdict(list)
-
-    # Regex to find rgb(...) colors within a style attribute
-    rgb_pattern = re.compile(
-        r'(color:rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))',
-        re.IGNORECASE
-    )
-
-    # Process each HTML string in the input list
-    for i, row in enumerate(all_hadiths):
-        hadith_id, original_hadith, original_sharh = row
-        print(f"Processing hadith {i + 1}/{total_hadiths} (ID: {hadith_id})... Done.")
-
-        # Parse the HTML
-        soup = BeautifulSoup(original_hadith, 'html.parser')
-        for tag in soup.find_all('span', style=rgb_pattern):
-            style_str = tag.get('style')
-            found_colors = rgb_pattern.findall(style_str)
-            if found_colors:
-                content = tag.get_text(strip=True)
-                if content:
-                    for color in found_colors:
-                        if not hadith_color_map[color] or len(hadith_color_map[color]) < 20:
-                            hadith_color_map[color].append(content)
-
-        soup = BeautifulSoup(original_sharh, 'html.parser')
-        for tag in soup.find_all('span', style=rgb_pattern):
-            style_str = tag.get('style')
-            found_colors = rgb_pattern.findall(style_str)
-            if found_colors:
-                content = tag.get_text(strip=True)
-                if content:
-                    for color in found_colors:
-                        if not sharh_color_map[color] or len(sharh_color_map[color]) < 20:
-                            sharh_color_map[color].append(content)
-
-    log_print(f"hadith_color_map:\n{json.dumps(hadith_color_map, indent = 4, ensure_ascii=False)}\nsharh_color_map:\n{json.dumps(sharh_color_map, indent = 4, ensure_ascii=False)}")
-        
-def test_process_and_print_hadith(conn):
-    cursor = conn.cursor()
-
-    # 1. Add the new column for search-friendly text
-    add_column_if_not_exists(conn, "hadiths", "hadith_normal", "TEXT")
-
-    # 2. Fetch all hadiths that need processing
-    cursor.execute("SELECT id, hadith, sharh FROM hadiths")
-    all_hadiths = cursor.fetchall()
+    # Apply processing logic
+    cleaned_hadith = clean_html_text(raw_hadith, 'hadith')
+    cleaned_sharh = clean_html_text(raw_sharh, 'sharh')
+    hadith_normal = clean_and_normalize_text(cleaned_hadith)
     
-    total_hadiths = len(all_hadiths)
-    print(f"\nFound {total_hadiths} hadiths to process.")
+    cursor = conn.cursor()
+    
+    # We only update content columns, not IDs or references usually
+    query = """
+    UPDATE hadiths 
+    SET title = ?, hadith = ?, sharh = ?, hadith_normal = ?
+    WHERE id = ?
+    """
+    
+    try:
+        cursor.execute(query, (data.get('title'), cleaned_hadith, cleaned_sharh, hadith_normal, hadith_id))
+        conn.commit()
+        if cursor.rowcount > 0:
+            print(f"Successfully updated Hadith ID {hadith_id} from JSON.")
+        else:
+            print(f"No hadith found with ID {hadith_id} to update.")
+    except sqlite3.Error as e:
+        print(f"Error updating hadith: {e}")
 
-    hadith_id, original_hadith, original_sharh = all_hadiths[1]
-    cleaned_hadith = clean_html_text(original_hadith, "hadith")
-    cleaned_sharh = clean_html_text(original_sharh, "sharh")
+def insert_hadith_from_json(conn, json_filename):
+    """
+    Reads a JSON file. 
+    1. Checks if the ID exists. 
+    2. If it exists, SHIFTS all subsequent IDs down by 1.
+    3. INSERTS the new record after processing text.
+    """
+    if not os.path.exists(json_filename):
+        print(f"File {json_filename} not found.")
+        return
+
+    with open(json_filename, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    target_id = data.get('id')
+    
+    # Apply processing logic
+    cleaned_hadith = clean_html_text(data.get('hadith', ''), 'hadith')
+    cleaned_sharh = clean_html_text(data.get('sharh', ''), 'sharh')
     hadith_normal = clean_and_normalize_text(cleaned_hadith)
 
-    log_print(f"""
-{original_hadith}
------------------------------------------------------------------------------------------------------------
-{cleaned_hadith}
------------------------------------------------------------------------------------------------------------
-{original_sharh}
------------------------------------------------------------------------------------------------------------
-{cleaned_sharh}""")
+    cursor = conn.cursor()
 
+    try:
+        # 1. Check if ID exists
+        cursor.execute("SELECT 1 FROM hadiths WHERE id = ?", (target_id,))
+        exists = cursor.fetchone()
+
+        if exists:
+            print(f"ID {target_id} exists. Shifting subsequent records...")
+            # Shift IDs to make room. 
+            # IMPORTANT: Must do this in descending order to avoid unique constraint collision during update
+            # But SQLite handles simple `UPDATE table SET id = id + 1` smartly usually, 
+            # but standard SQL practice is careful.
+            cursor.execute("UPDATE hadiths SET id = id + 1 WHERE id >= ?", (target_id,))
+            print("Shift complete.")
+
+        # 2. Insert
+        columns = "id, book_id, door_id, title, hadith, sharh, hadith_normal"
+        placeholders = "?, ?, ?, ?, ?, ?, ?"
+        
+        values = (
+            target_id,
+            data.get('book_id'),
+            data.get('door_id'),
+            data.get('title'),
+            cleaned_hadith,
+            cleaned_sharh,
+            hadith_normal
+        )
+
+        cursor.execute(f"INSERT INTO hadiths ({columns}) VALUES ({placeholders})", values)
+        conn.commit()
+        print(f"Successfully inserted new Hadith at ID {target_id}.")
+
+    except sqlite3.Error as e:
+        print(f"Error inserting hadith: {e}")
+        conn.rollback()
+
+# ==========================================
+# BATCH PROCESSING
+# ==========================================
 def process_and_update_hadiths(conn):
     cursor = conn.cursor()
 
@@ -276,29 +413,36 @@ def main():
     original_database_path = "riyad_salheen.db"
     target_database_path = "..\\app\\src\\main\\assets\\databases\\riyad_salheen.db"
 
-    try:
-        print(f"Copying '{original_database_path}' to '{target_database_path}'...")
-        shutil.copyfile(original_database_path, target_database_path)
-        print("Copy complete.")
+    # try:
+    #     print(f"Copying '{original_database_path}' to '{target_database_path}'...")
+    #     shutil.copyfile(original_database_path, target_database_path)
+    #     print("Copy complete.")
         
-    except IOError as e:
-        print(f"Unable to copy file. Error: {e}")
-        return
-    except Exception as e:
-        print(f"An error occurred during copy: {e}")
-        return
+    # except IOError as e:
+    #     print(f"Unable to copy file. Error: {e}")
+    #     return
+    # except Exception as e:
+    #     print(f"An error occurred during copy: {e}")
+    #     return
     
-    conn = None
+    conn = sqlite3.connect(target_database_path)
     try:
-        print(f"Connecting to processed database: {target_database_path}")
-        conn = sqlite3.connect(target_database_path)
-        # test_process_and_print_hadith(conn)
-        process_and_update_hadiths(conn)
+        # --- MODE SELECTION ---
+        # Uncomment the function you want to run
         
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        # A. Run the full cleanup on the whole DB
+        # process_and_update_all_hadiths(conn)
+
+        # B. Export a specific Hadith to JSON (to edit it)
+        # export_hadith_to_json(conn, hadith_id=1, output_filename="edit_hadith_1.json")
+
+        # C. Import (Update) an edited JSON back to DB
+        # update_hadith_from_json(conn, json_filename="edit_hadith_1.json")
+
+        # D. Insert a NEW Hadith at a specific Index (Shifting others)
+        # insert_hadith_from_json(conn, json_filename="new_hadith.json")
+        
+        pass # Placeholder if everything above is commented out
     finally:
         if conn:
             conn.close()

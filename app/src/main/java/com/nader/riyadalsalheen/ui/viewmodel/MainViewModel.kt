@@ -114,6 +114,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun searchHadiths(query: String) {
+        if(searchQuery.value == query){
+            return
+        }
+
         searchQuery.value = query
         if (query.isBlank()) {
             searchResults.value = emptyList()

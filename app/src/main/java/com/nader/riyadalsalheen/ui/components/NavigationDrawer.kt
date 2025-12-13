@@ -142,7 +142,7 @@ fun NavigationDrawer(
                 // Bookmarks Section Header
                 item {
                     DrawerMenuItem(
-                        text = "العلامات المرجعية",
+                        text = "المفضلة",
                         icon = ImageVector.vectorResource(R.drawable.ic_bookmark_24),
                         fontWeight = FontWeight.SemiBold
                     )
@@ -152,11 +152,7 @@ fun NavigationDrawer(
                 if (bookmarks.isEmpty()) {
                     item {
                         Text(
-                            text = "لا توجد علامات مرجعية",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 48.dp, top = 8.dp, bottom = 8.dp)
+                            text = "لا توجد مفضلة",
                         )
                     }
                 }
@@ -214,7 +210,7 @@ fun NavigationDrawer(
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = "عرض جميع العلامات المرجعية",
+                                text = "عرض جميع المفضلة",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.primary

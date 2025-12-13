@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,8 +39,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,6 +86,9 @@ fun SearchScreenContent(
     onBackPressed: () -> Unit = {}
 ) {
     val focusRequester = remember { FocusRequester() }
+    val textFieldValueState = remember {
+        mutableStateOf(TextFieldValue(text = searchQuery, selection = TextRange(searchQuery.length)))
+    }
 
     LaunchedEffect(Unit) {
         delay(100)
@@ -94,9 +100,14 @@ fun SearchScreenContent(
             TopAppBar(
                 title = {
                     OutlinedTextField(
-                        value = searchQuery,
+                        value = textFieldValueState.value,
                         keyboardOptions = KeyboardOptions(hintLocales = LocaleList("ar")),
-                        onValueChange = onSearch,
+                        onValueChange = { newTextFieldValueState ->
+                            textFieldValueState.value = newTextFieldValueState
+                            if(newTextFieldValueState.text != searchQuery) {
+                                onSearch(newTextFieldValueState.text)
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
