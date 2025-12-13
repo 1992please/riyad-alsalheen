@@ -229,7 +229,12 @@ fun HadithDetailContent(
                     )
                     .pointerInput(Unit) {
                         var velocity = Velocity.Zero
+                        var initialPage = pagerState.currentPage
                         detectDragGestures(
+                            onDragStart = {
+                                velocity = Velocity.Zero
+                                initialPage = pagerState.currentPage
+                            },
                             onDrag = { change, dragAmount ->
                                 change.consume() // We consume the touch
                                 val deltaTime =
@@ -245,23 +250,27 @@ fun HadithDetailContent(
 
                                 if (isHorizontalDrag) {
                                     pagerState.dispatchRawDelta(dx)
-                                } else {
+                                } else if(kotlin.math.abs(pagerState.currentPageOffsetFraction) < .1){
                                     verticalScrollChannel.trySend(ScrollEvent.Drag(-dy))
                                 }
                             },
                             onDragEnd = {
-                                val isHorizontalSwipe =
-                                    kotlin.math.abs(velocity.x) > kotlin.math.abs(velocity.y)
-                                var targetPage = pagerState.currentPage
-                                if (isHorizontalSwipe) {
-                                    targetPage = when {
-                                        pagerState.currentPageOffsetFraction > 0.3f -> pagerState.currentPage + 1
-                                        pagerState.currentPageOffsetFraction < -0.3f -> pagerState.currentPage - 1
-                                        velocity.x > 2000 && pagerState.currentPageOffsetFraction > 0.1f -> pagerState.currentPage + 1  // Fast swipe right
-                                        velocity.x < -2000 && pagerState.currentPageOffsetFraction < -0.1f -> pagerState.currentPage - 1 // Fast swipe left
-                                        else -> pagerState.currentPage
-                                    }
-                                } else {
+
+                                // making sure we don't use offset fraction if the page already changed
+                                val targetPage = when {
+                                    pagerState.currentPageOffsetFraction > 0.3f &&
+                                            initialPage == pagerState.currentPage -> pagerState.currentPage + 1
+                                    pagerState.currentPageOffsetFraction < -0.3f &&
+                                            initialPage == pagerState.currentPage-> pagerState.currentPage - 1
+                                    velocity.x > 2000 && pagerState.currentPageOffsetFraction > 0.1f -> pagerState.currentPage + 1  // Fast swipe right
+                                    velocity.x < -2000 && pagerState.currentPageOffsetFraction < -0.1f -> pagerState.currentPage - 1 // Fast swipe left
+                                    else -> pagerState.currentPage
+                                }
+
+                                // make sure we fling only with a higher velocity in vertical axis
+                                // and a page is mostly visible
+                                if (kotlin.math.abs(velocity.y) > kotlin.math.abs(velocity.x) &&
+                                    kotlin.math.abs(pagerState.currentPageOffsetFraction) < .1) {
                                     verticalScrollChannel.trySend(ScrollEvent.Fling(-velocity.y))
                                 }
 
