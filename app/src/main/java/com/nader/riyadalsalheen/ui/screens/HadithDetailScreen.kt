@@ -3,17 +3,13 @@ package com.nader.riyadalsalheen.ui.screens
 import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.calculateTargetValue
-import androidx.compose.animation.core.exponentialDecay
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -44,8 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,14 +67,7 @@ import com.nader.riyadalsalheen.ui.components.HtmlText
 import com.nader.riyadalsalheen.ui.components.LoadingContent
 import com.nader.riyadalsalheen.ui.components.TextType
 import com.nader.riyadalsalheen.ui.viewmodel.MainViewModel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-
-sealed interface ScrollEvent {
-    data class Drag(val delta: Float) : ScrollEvent
-    data class Fling(val velocity: Float) : ScrollEvent
-}
 
 fun shareHadith(context: Context, hadithDetails: HadithDetails) {
     val shareText = hadithDetails.hadith.matn.replace(Regex("<[^>]*>"), "")
@@ -146,11 +134,8 @@ fun HadithDetailContent(
     )
 
     val currentHadithId = pagerState.currentPage + 1
-    val currentHadith = loadAndGetHadith(currentHadithId)
+    val currentHadith = loadAndGetHadith(currentHadithId) ?: return LoadingContent()
 
-    if (currentHadith == null) {
-        return LoadingContent()
-    }
     val context = LocalContext.current
 
     val isBookmarked = uiState.bookmarks.any { currentHadith.hadith.id == it.id }
@@ -194,7 +179,8 @@ fun HadithDetailContent(
             label = "contentPaddingAnim"
         )
 
-        val verticalScrollChannel = remember { Channel<ScrollEvent>(Channel.UNLIMITED) }
+        val scrollStates = remember { mutableStateMapOf<Int, ScrollState>() }
+        val flingBehavior = ScrollableDefaults.flingBehavior()
 
         Box(modifier = Modifier
             .fillMaxSize()
@@ -214,8 +200,7 @@ fun HadithDetailContent(
                 HadithPageContent(
                     currentHadith = getHadith(page + 1),
                     fontSize = uiState.fontSize,
-                    scrollChannel = verticalScrollChannel,
-                    isCurrentPage = page == pagerState.currentPage
+                    scrollState = scrollStates.getOrPut(page) { ScrollState(0) }
                 )
             }
 
@@ -251,7 +236,7 @@ fun HadithDetailContent(
                                 if (isHorizontalDrag) {
                                     pagerState.dispatchRawDelta(dx)
                                 } else if(kotlin.math.abs(pagerState.currentPageOffsetFraction) < .1){
-                                    verticalScrollChannel.trySend(ScrollEvent.Drag(-dy))
+                                    scrollStates[pagerState.currentPage]?.dispatchRawDelta(-dy)
                                 }
                             },
                             onDragEnd = {
@@ -271,7 +256,15 @@ fun HadithDetailContent(
                                 // and a page is mostly visible
                                 if (kotlin.math.abs(velocity.y) > kotlin.math.abs(velocity.x) &&
                                     kotlin.math.abs(pagerState.currentPageOffsetFraction) < .1) {
-                                    verticalScrollChannel.trySend(ScrollEvent.Fling(-velocity.y))
+                                    
+                                    val currentPage = pagerState.currentPage
+                                    coroutineScope.launch {
+                                        scrollStates[currentPage]?.scroll {
+                                            with(flingBehavior) {
+                                                performFling(-velocity.y)
+                                            }
+                                        }
+                                    }
                                 }
 
                                 coroutineScope.launch {
@@ -366,40 +359,10 @@ fun TopAppBarContent(
 fun HadithPageContent(
     currentHadith: HadithDetails?,
     fontSize: Float,
-    scrollChannel: Channel<ScrollEvent>, // Receive the channel
-    isCurrentPage: Boolean // Know if I am the active page
+    scrollState: ScrollState
 ) {
     if(currentHadith == null) {
         return LoadingContent()
-    }
-
-    val scrollState = rememberScrollState()
-
-    LaunchedEffect(isCurrentPage) {
-        if (isCurrentPage) {
-            // Only the visible page listens to the scroll commands
-            scrollChannel.receiveAsFlow().collect { event ->
-                when(event){
-                    is ScrollEvent.Drag -> {
-                        scrollState.scrollBy(event.delta)
-                    }
-                    is ScrollEvent.Fling->{
-                        // Calculate distance based on velocity and decay
-                        val decay = exponentialDecay<Float>()
-                        val targetValue = decay.calculateTargetValue(0f, event.velocity * .5f)
-
-                        scrollState.animateScrollBy(
-                            value = targetValue,
-                            animationSpec = tween(
-                                durationMillis = 400,
-                                easing = LinearOutSlowInEasing
-                            )
-                        )
-                    }
-                }
-
-            }
-        }
     }
 
     Column(

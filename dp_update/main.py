@@ -431,7 +431,7 @@ def main():
         # Uncomment the function you want to run
         
         # A. Run the full cleanup on the whole DB
-        # process_and_update_all_hadiths(conn)
+        # process_and_update_hadiths(conn)
 
         # B. Export a specific Hadith to JSON (to edit it)
         # export_hadith_to_json(conn, hadith_id=1, output_filename="edit_hadith_1.json")

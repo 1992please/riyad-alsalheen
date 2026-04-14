@@ -12,7 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-const val DEFAULT_FONT_SIZE = 22f
+const val DEFAULT_FONT_SIZE = 24f
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
