@@ -57,7 +57,7 @@ The `dp_update` folder contains a script for processing Hadith text (e.g., remov
 3. Run the script: `python main.py`.
 
 ## 📄 License
-This project is for personal use and educational purposes. *(Add specific license details if applicable)*
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 Developed by [Nader Hegazy](https://nadernour.github.io/)
