@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">رياض الصالحين</string>
+    <string name="contact_developer">التواصل مع المطور</string>
+    <string name="send_email">مراسلة عبر البريد الإلكتروني</string>
+    <string name="developer_github">مشروع التطبيق على GitHub</string>
+    <string name="email_subject">ملاحظات حول تطبيق رياض الصالحين</string>
 </resources>

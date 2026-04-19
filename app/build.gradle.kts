@@ -13,11 +13,11 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.nader.riyadalsalheen"
+    namespace = "com.nad.riyadalsalheen"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.nader.riyadalsalheen"
+        applicationId = "com.nad.riyadalsalheen"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
